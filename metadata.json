@@ -1,0 +1,11 @@
+{
+  "name": "Kisaan Sevak",
+  "description": "Smart farming assistant providing AI crop diagnosis, soil analysis, irrigation scheduling, weather insights, and market price analysis",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
