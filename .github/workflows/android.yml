@@ -67,3 +67,42 @@ jobs:
             gh release create android-latest --prerelease --title "Android app (latest build)" --notes "Install: open this page on your Android phone and tap kisaan-sevak.apk." --target "${{ github.sha }}"
           gh release upload android-latest kisaan-sevak.apk --clobber
           gh release edit android-latest --notes "$NOTE Install: on your Android phone, tap kisaan-sevak.apk below, then allow installing from your browser if asked."
+
+  launch-test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: kisaan-sevak-android-${{ github.run_number }}
+          path: out
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Launch app on emulator and capture logs
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          disable-animations: true
+          script: |
+            find out -name '*.apk' | sort
+            adb install -r "$(find out -path '*debug*' -name '*.apk' | head -1)"
+            adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.kisaansevak.app | tee resolve.txt
+            adb logcat -c
+            adb shell monkey -p com.kisaansevak.app -c android.intent.category.LAUNCHER 1 | tee monkey.txt
+            sleep 20
+            adb logcat -d -v brief > logcat.txt || true
+            { echo '## Launch test'; echo '```'; cat resolve.txt monkey.txt; echo '--- errors ---'; grep -E 'AndroidRuntime|FATAL|kisaansevak|ActivityTaskManager|androidbrowserhelper|TrustedWebActivity|Exception' logcat.txt | head -80; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-logcat-${{ github.run_number }}
+          path: logcat.txt
+          if-no-files-found: ignore
