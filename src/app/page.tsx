@@ -217,7 +217,7 @@ function FarmerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Gemini AI Multi-Model Banner */}
         <Card className="border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-teal-500/5">
-          <CardContent className="p-4 flex items-center justify-between gap-4">
+          <CardContent className="p-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-sm text-foreground">
                 <Bot className="h-4 w-4 text-emerald-600" />
@@ -227,8 +227,8 @@ function FarmerDashboard() {
                 Chat with Gemini 4 Argon, 3.8 Flash & 3.1 Flash Lite. Features live Google Search & Maps Grounding for mandi prices & agricultural centers.
               </p>
             </div>
-            <Link href="/ai-assistant">
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0">
+            <Link href="/ai-assistant" className="shrink-0">
+              <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Sparkles className="h-3.5 w-3.5 mr-1" /> Open Chat
               </Button>
             </Link>
@@ -237,7 +237,7 @@ function FarmerDashboard() {
 
         {/* Bioscience Intelligence Banner */}
         <Card className="border-teal-200 bg-gradient-to-br from-teal-500/10 to-blue-500/5">
-          <CardContent className="p-4 flex items-center justify-between gap-4">
+          <CardContent className="p-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-sm text-foreground">
                 <Dna className="h-4 w-4 text-teal-600" />
@@ -247,8 +247,8 @@ function FarmerDashboard() {
                 PubChem active ingredient analysis for fertilizers (Urea, NPK), biopesticides (Neem), fungicides, and chemical safety data.
               </p>
             </div>
-            <Link href="/crop-science">
-              <Button size="sm" variant="outline" className="border-teal-400 hover:bg-teal-50 text-teal-800 shrink-0">
+            <Link href="/crop-science" className="shrink-0">
+              <Button size="sm" variant="outline" className="w-full sm:w-auto border-teal-400 hover:bg-teal-50 text-teal-800">
                 Explore Science
               </Button>
             </Link>

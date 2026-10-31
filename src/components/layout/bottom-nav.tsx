@@ -46,12 +46,12 @@ export function BottomNav() {
               <Link
                 href={href}
                 className={cn(
-                  'flex h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium',
+                  'flex h-16 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[10px] font-medium leading-tight',
                   active ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
                 <Icon className={cn('h-6 w-6', active && 'stroke-[2.5]')} />
-                <span className="line-clamp-1 max-w-full">{label}</span>
+                <span className="line-clamp-2 max-w-full break-words">{label}</span>
               </Link>
             </li>
           );
@@ -60,7 +60,7 @@ export function BottomNav() {
           <button
             type="button"
             onClick={() => setOpenMobile(true)}
-            className="flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground"
+            className="flex h-16 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium leading-tight text-muted-foreground"
           >
             <Menu className="h-6 w-6" />
             <span>More</span>
