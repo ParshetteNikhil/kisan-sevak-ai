@@ -17,6 +17,10 @@ import {
   User,
   Package,
   History,
+  Bot,
+  Dna,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRole } from '@/context/role-provider';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +30,7 @@ import { isToday, parseISO } from 'date-fns';
 import { useI18n } from '@/hooks/use-i18n';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useRecords } from '@/context/records-provider';
+import { useAuth } from '@/context/auth-provider';
 
 type WeatherData = {
   temp: number;
@@ -156,12 +161,76 @@ function FarmerDashboard() {
   }, [t]);
 
 
+  const { user, signInWithGoogle } = useAuth();
+
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          {t('farmer_dashboard')}
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-headline">
+            {t('farmer_dashboard')}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Smart farm management powered by Gemini AI, Google Search & Maps Grounding, and Bioscience intelligence.
+          </p>
+        </div>
+        {!user ? (
+          <Button
+            size="sm"
+            onClick={() => signInWithGoogle()}
+            className="bg-[#4285F4] hover:bg-[#3367D6] text-white flex items-center gap-2 self-start sm:self-auto"
+          >
+            <ShieldCheck className="h-4 w-4" /> Sign In to Sync Cloud Data
+          </Button>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full font-medium">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+            <span>Synced to Firestore: {user.displayName || user.email}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Feature Showcase Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Gemini AI Multi-Model Banner */}
+        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-500/10 to-teal-500/5">
+          <CardContent className="p-4 flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-sm text-foreground">
+                <Bot className="h-4 w-4 text-emerald-600" />
+                <span>Multi-Model Gemini Farming AI</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Chat with Gemini 4 Argon, 3.8 Flash & 3.1 Flash Lite. Features live Google Search & Maps Grounding for mandi prices & agricultural centers.
+              </p>
+            </div>
+            <Link href="/ai-assistant">
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0">
+                <Sparkles className="h-3.5 w-3.5 mr-1" /> Open Chat
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Bioscience Intelligence Banner */}
+        <Card className="border-teal-200 bg-gradient-to-br from-teal-500/10 to-blue-500/5">
+          <CardContent className="p-4 flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-sm text-foreground">
+                <Dna className="h-4 w-4 text-teal-600" />
+                <span>Crop Bioscience & Chemistry</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                PubChem active ingredient analysis for fertilizers (Urea, NPK), biopesticides (Neem), fungicides, and chemical safety data.
+              </p>
+            </div>
+            <Link href="/crop-science">
+              <Button size="sm" variant="outline" className="border-teal-400 hover:bg-teal-50 text-teal-800 shrink-0">
+                Explore Science
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -243,7 +312,17 @@ function FarmerDashboard() {
         <CardHeader>
           <CardTitle>{t('quick_actions')}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link href="/ai-assistant" passHref>
+            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Bot className="mr-2 h-4 w-4" /> AI Assistant
+            </Button>
+          </Link>
+          <Link href="/crop-science" passHref>
+            <Button className="w-full" variant="outline">
+              <Dna className="mr-2 h-4 w-4 text-teal-600" /> Bioscience
+            </Button>
+          </Link>
           <Link href="/schedule" passHref>
             <Button className="w-full" variant="outline">
               <Calendar className="mr-2 h-4 w-4" /> {t('view_schedule')}
@@ -252,11 +331,6 @@ function FarmerDashboard() {
           <Link href="/records" passHref>
             <Button className="w-full" variant="outline">
               <BookText className="mr-2 h-4 w-4" /> {t('manage_records')}
-            </Button>
-          </Link>
-          <Link href="/market" passHref>
-            <Button className="w-full">
-              <Store className="mr-2 h-4 w-4" /> {t('go_to_marketplace')}
             </Button>
           </Link>
         </CardContent>

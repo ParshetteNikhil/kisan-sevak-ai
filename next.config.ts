@@ -1,8 +1,17 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   output: 'standalone',
-  /* config options here */
+  serverExternalPackages: [
+    '@genkit-ai/core',
+    '@genkit-ai/ai',
+    '@genkit-ai/googleai',
+    '@genkit-ai/next',
+    'genkit',
+    'handlebars',
+    'dotprompt',
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },

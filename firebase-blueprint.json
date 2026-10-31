@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile for farmers or agricultural buyers",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user ID matching Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full display name of user",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of user",
+          "maxLength": 150
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Avatar image URL",
+          "maxLength": 500
+        },
+        "role": {
+          "type": "string",
+          "enum": ["farmer", "buyer"],
+          "description": "Selected user application role"
+        },
+        "contact": {
+          "type": "string",
+          "description": "Contact phone or WhatsApp number",
+          "maxLength": 30
+        },
+        "bio": {
+          "type": "string",
+          "description": "Short bio or farm description",
+          "maxLength": 500
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Agricultural task and schedule item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "activity": {
+          "type": "string",
+          "enum": ["Planting", "Fertilizing", "Harvesting", "Weeding", "Pest Control", "Irrigation"],
+          "description": "Type of farming activity"
+        },
+        "crop": {
+          "type": "string",
+          "description": "Crop or field name",
+          "maxLength": 150
+        },
+        "date": {
+          "type": "string",
+          "description": "Scheduled date (YYYY-MM-DD)",
+          "maxLength": 20
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Upcoming", "Done", "Delayed"],
+          "description": "Current status of the task"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when task was created"
+        }
+      },
+      "required": ["id", "userId", "activity", "crop", "date", "status"]
+    },
+    "FarmRecord": {
+      "title": "FarmRecord",
+      "description": "Historical crop yield and harvest record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Record identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "crop": {
+          "type": "string",
+          "description": "Crop name",
+          "maxLength": 100
+        },
+        "yield": {
+          "type": "number",
+          "description": "Harvest yield quantity in kg"
+        },
+        "date": {
+          "type": "string",
+          "description": "Harvest date (YYYY-MM-DD)",
+          "maxLength": 20
+        },
+        "notes": {
+          "type": "string",
+          "description": "Field notes, soil observations or pest notes",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "crop", "yield", "date"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Persisted conversational messages with Gemini AI",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Message identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "model"],
+          "description": "Sender role"
+        },
+        "content": {
+          "type": "string",
+          "description": "Message text content",
+          "maxLength": 10000
+        },
+        "modelUsed": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Gemini model used (gemini-3.8-flash, gemini-4-argon, gemini-3.1-flash-lite)"
+        },
+        "groundingType": {
+          "type": "string",
+          "enum": ["none", "search", "maps"],
+          "description": "Grounding tool utilized"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of message"
+        }
+      },
+      "required": ["id", "userId", "role", "content"]
+    },
+    "BioscienceQuery": {
+      "title": "BioscienceQuery",
+      "description": "Saved agrochemical or bioscience search results",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Saved query identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "compoundName": {
+          "type": "string",
+          "description": "Agrochemical or compound name",
+          "maxLength": 150
+        },
+        "cid": {
+          "type": "number",
+          "description": "PubChem Compound ID"
+        },
+        "formula": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Molecular formula"
+        },
+        "safetySummary": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "GHS hazard and handling summary"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Time when saved"
+        }
+      },
+      "required": ["id", "userId", "compoundName", "cid"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Individual user profile record"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User scheduled agricultural tasks"
+    },
+    "/users/{userId}/records/{recordId}": {
+      "schema": "FarmRecord",
+      "description": "User historical crop yields and logs"
+    },
+    "/users/{userId}/chat_messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Saved user multi-turn Gemini chat threads"
+    },
+    "/users/{userId}/bioscience_queries/{queryId}": {
+      "schema": "BioscienceQuery",
+      "description": "Saved scientific chemical and crop pathology investigations"
+    }
+  }
+}
