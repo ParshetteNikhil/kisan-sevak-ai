@@ -45,6 +45,6 @@ Rules are in `firestore.rules`. All AI calls (the `/api/gemini/chat` route and e
 
 ## Known gaps
 
-- `next.config.ts` still ignores TypeScript and ESLint errors during build. Run `npm run typecheck` and fix what it reports, then turn those checks back on.
+- ESLint is still skipped during builds (type checking is on and enforced by CI).
 - The "live market prices" table on the Market page is a static reference list, not a live mandi feed. Weather comes from Open-Meteo.
 - The AI rate limiter is in memory per server instance; move it to Firestore if you scale out.
