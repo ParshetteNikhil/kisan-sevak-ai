@@ -102,7 +102,7 @@ export function SidebarNav() {
               >
                 <Link href={item.href} onClick={closeOnMobile}>
                   <item.icon className="h-5 w-5" />
-                  <span className="font-headline">{t(item.key) || item.label}</span>
+                  <span className="font-headline">{t(item.key) && t(item.key) !== item.key ? t(item.key) : item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

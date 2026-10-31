@@ -9,7 +9,7 @@ Goal: working web app on Firebase (free Spark plan) → Android app on Google Pl
 | M3 | Build green with type checking enforced | ✅ Done |
 | M4 | PWA (manifest, icons, offline page), privacy policy `/privacy`, account deletion `/account/delete`, asset links route, same-origin auth proxy | ✅ Done |
 | M5 | Live on Firebase App Hosting (Blaze, ₹100 budget alert); Gemini key secret (Accessor + Viewer for App Hosting & Cloud Build SAs); authorized domain + OAuth redirect URI. Smoke test passed (sign-in, Firestore, AI chat) | ✅ Done |
-| M6 | Android TWA project (`android/`, target API 36), upload key generated, CI builds `.aab`/`.apk` (Actions → Android), asset links verified | ⏳ In progress |
+| M6 | Mobile UI (app bar + Menu, bottom nav, safe areas) ✅. Android TWA project (`android/`, target API 36), upload key generated, CI builds `.aab`/`.apk`, emulator launch test gates the APK link (releases/android-latest). Pending: signing secrets → full-screen | ⏳ In progress |
 | M7 | Listing kit ready in `store/`. Play Console: account, listing, screenshots, data safety, content rating, closed test (12 testers × 14 days for new personal accounts), production | ⬜ |
 
 ## Decisions

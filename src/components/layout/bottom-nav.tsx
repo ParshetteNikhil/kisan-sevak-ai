@@ -8,6 +8,11 @@ import { useRole } from '@/context/role-provider';
 import { useI18n } from '@/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 
+const label = (t: (k: string) => string, key: string, fallback: string) => {
+  const v = t(key);
+  return v && v !== key ? v : fallback;
+};
+
 /** Phone bottom navigation for the most-used sections; "More" opens the full menu. */
 export function BottomNav() {
   const { isMobile, setOpenMobile } = useSidebar();
@@ -20,16 +25,16 @@ export function BottomNav() {
   const items =
     role === 'buyer'
       ? [
-          { href: '/', label: t('dashboard') || 'Home', icon: LayoutDashboard },
-          { href: '/market', label: t('marketplace') || 'Market', icon: Store },
-          { href: '/ai-assistant', label: t('ai_assistant') || 'AI', icon: Bot },
+          { href: '/', label: label(t, 'dashboard', 'Home'), icon: LayoutDashboard },
+          { href: '/market', label: label(t, 'marketplace', 'Market'), icon: Store },
+          { href: '/ai-assistant', label: label(t, 'ai_assistant', 'AI'), icon: Bot },
         ]
       : [
-          { href: '/', label: t('dashboard') || 'Home', icon: LayoutDashboard },
-          { href: '/ai-assistant', label: t('ai_assistant') || 'AI', icon: Bot },
-          { href: '/crop-health', label: t('crop_health') || 'Crop Health', icon: HeartPulse },
-          { href: '/market', label: t('marketplace') || 'Market', icon: Store },
-          { href: '/schedule', label: t('schedule') || 'Schedule', icon: CalendarDays },
+          { href: '/', label: label(t, 'dashboard', 'Home'), icon: LayoutDashboard },
+          { href: '/ai-assistant', label: label(t, 'ai_assistant', 'AI'), icon: Bot },
+          { href: '/crop-health', label: label(t, 'crop_health', 'Crop Health'), icon: HeartPulse },
+          { href: '/market', label: label(t, 'marketplace', 'Market'), icon: Store },
+          { href: '/schedule', label: label(t, 'schedule', 'Schedule'), icon: CalendarDays },
         ];
 
   return (
