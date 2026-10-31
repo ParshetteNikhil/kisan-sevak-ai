@@ -98,7 +98,8 @@ jobs:
             adb shell monkey -p com.kisaansevak.app -c android.intent.category.LAUNCHER 1 | tee monkey.txt
             sleep 20
             adb logcat -d -v brief > logcat.txt || true
-            { echo '## Launch test'; echo '```'; cat resolve.txt monkey.txt; echo '--- errors ---'; grep -E 'AndroidRuntime|FATAL|kisaansevak|ActivityTaskManager|androidbrowserhelper|TrustedWebActivity|Exception' logcat.txt | head -80; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            { echo '## Launch test'; echo '```'; cat resolve.txt monkey.txt; echo '--- errors ---'; grep -A25 'FATAL EXCEPTION' logcat.txt | head -60; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            if grep -q 'FATAL EXCEPTION' logcat.txt; then echo "App crashed on launch"; exit 1; fi
 
       - uses: actions/upload-artifact@v4
         if: always()
