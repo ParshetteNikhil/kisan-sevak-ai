@@ -178,6 +178,11 @@ export function SidebarNav() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex justify-center gap-3 text-[11px] text-muted-foreground">
+          <Link href="/privacy" className="hover:underline">Privacy</Link>
+          <span aria-hidden>·</span>
+          <Link href="/account/delete" className="hover:underline">Delete account</Link>
+        </div>
       </SidebarFooter>
     </>
   );

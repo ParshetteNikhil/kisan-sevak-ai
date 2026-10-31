@@ -22,9 +22,22 @@ const env = {
 const useEnv = Boolean(env.apiKey && env.projectId);
 const fallback = appletConfig as typeof appletConfig & { firestoreDatabaseId?: string };
 
+/**
+ * On the deployed site, sign-in runs through our own domain (proxied to
+ * Firebase by the /__/auth rewrite in next.config.ts). This keeps Google
+ * sign-in working inside the Android app and in browsers that block
+ * third-party storage. Locally we use the default firebaseapp.com domain.
+ */
+function resolveAuthDomain(defaultDomain: string): string {
+  if (typeof window === 'undefined') return defaultDomain;
+  const { hostname, host } = window.location;
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
+  return isLocal ? defaultDomain : host;
+}
+
 export const firebaseConfig = {
   apiKey: (useEnv ? env.apiKey : fallback.apiKey) as string,
-  authDomain: (useEnv ? env.authDomain : fallback.authDomain) as string,
+  authDomain: resolveAuthDomain((useEnv ? env.authDomain : fallback.authDomain) as string),
   projectId: (useEnv ? env.projectId : fallback.projectId) as string,
   storageBucket: (useEnv ? env.storageBucket : fallback.storageBucket) as string | undefined,
   messagingSenderId: (useEnv ? env.messagingSenderId : fallback.messagingSenderId) as string | undefined,

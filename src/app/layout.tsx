@@ -1,5 +1,5 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { I18nProvider } from '@/context/i18n-provider';
@@ -11,13 +11,23 @@ import { ProfileProvider } from '@/context/profile-provider';
 import { TasksProvider } from '@/context/tasks-provider';
 import { RecordsProvider } from '@/context/records-provider';
 import { Header } from '@/components/layout/header';
+import { RegisterServiceWorker } from '@/components/pwa/register-sw';
 
 export const metadata: Metadata = {
   title: 'Kisaan Sevak',
   description: 'Your smart farming companion',
+  applicationName: 'Kisaan Sevak',
   icons: {
     icon: '/favicon.ico',
+    apple: '/icons/apple-touch-icon.png',
   },
+  appleWebApp: { capable: true, title: 'Kisaan Sevak', statusBarStyle: 'default' },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#4A824A',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -50,6 +60,7 @@ export default function RootLayout({
         </AuthProvider>
       </I18nProvider>
       <Toaster />
+      <RegisterServiceWorker />
     </body>
   </html>
 );
