@@ -1,12 +1,9 @@
 {
-  "projectId": "gen-lang-client-0332927092",
-  "appId": "1:871728106573:web:ac27e2cffe29612846a004",
-  "apiKey": "AIzaSyCr7sjk7lTzhQ6qAYPCVPlYv3g19hVV7B0",
-  "authDomain": "gen-lang-client-0332927092.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-kisaansevak-698d1231-a8cd-4e1e-826c-b8727534523c",
-  "storageBucket": "gen-lang-client-0332927092.firebasestorage.app",
-  "messagingSenderId": "871728106573",
-  "measurementId": "",
-  "oAuthClientId": "871728106573-ntvr3j28s80ofjaqgip7nmksnqhe2g7c.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "agriassist-3593e",
+  "appId": "1:61444747158:web:9d942de4fbcc9b5bedf7b7",
+  "apiKey": "AIzaSyAQxNV1cKGSLgc1POGqAjGT8ArUfm_Ev24",
+  "authDomain": "agriassist-3593e.firebaseapp.com",
+  "storageBucket": "agriassist-3593e.firebasestorage.app",
+  "messagingSenderId": "61444747158",
+  "measurementId": "G-YX7CNX8SY0"
 }

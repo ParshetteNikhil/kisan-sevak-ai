@@ -12,7 +12,7 @@ cp .env.example .env.local  # then add your GEMINI_API_KEY
 npm run dev                 # http://localhost:3000
 ```
 
-Without any `NEXT_PUBLIC_FIREBASE_*` values the app uses the Firebase project in `firebase-applet-config.json` (the one Google AI Studio created).
+Without any `NEXT_PUBLIC_FIREBASE_*` values the app uses the Firebase project in `firebase-applet-config.json` (`agriassist-3593e`, default Firestore database in asia-south1).
 
 ## What lives where
 
