@@ -40,6 +40,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { generateAISchedule } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import { PlusCircle, Tractor, Scissors, Wand2, Loader2, Bug, FlaskConical, Waves, Grab } from 'lucide-react';
 import { isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '@/context/tasks-provider';
@@ -128,7 +129,7 @@ export default function ScheduleClient() {
       };
 
       try {
-        const newTasks = await generateAISchedule(input);
+        const newTasks = await generateAISchedule(await getIdTokenOrThrow(), input);
         
         const mappedTasks = newTasks.map(task => ({
             ...task,
@@ -148,7 +149,10 @@ export default function ScheduleClient() {
          toast({
             variant: "destructive",
             title: t('generation_failed'),
-            description: t('generation_failed_desc')
+            description:
+              error instanceof Error && error.message.startsWith('Please sign in')
+                ? error.message
+                : t('generation_failed_desc'),
          });
       } finally {
         setIsGenerating(false);

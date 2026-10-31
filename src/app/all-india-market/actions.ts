@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   getInterStatePriceAnalysis,
   type InterStatePriceInput,
@@ -7,12 +8,15 @@ import {
 } from '@/ai/flows/inter-state-price-flow';
 
 export async function analyzeInterStatePrice(
+  idToken: string,
   input: InterStatePriceInput
 ): Promise<InterStatePriceOutput> {
   try {
+    await requireAiUser(idToken);
     const output = await getInterStatePriceAnalysis(input);
     return output;
   } catch (error) {
+    if (error instanceof AuthError) throw new Error(error.message);
     console.error('Error getting inter-state price analysis:', error);
     throw new Error('Failed to get analysis from AI.');
   }

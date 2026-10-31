@@ -2,6 +2,7 @@
 
 import AllIndiaMarketClient from './all-india-market-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function AllIndiaMarketPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export default function AllIndiaMarketPage() {
           {t('all_india_market_desc')}
         </p>
       </div>
-      <AllIndiaMarketClient />
+      <SignInRequired feature="Inter-state price analysis"><AllIndiaMarketClient /></SignInRequired>
     </div>
   );
 }

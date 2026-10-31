@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Calculator, Sprout, Loader2, BarChart3, Info } from 'lucide-react';
 import { getProfitabilityForecast } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import type { ProfitabilityForecastOutput } from '@/ai/flows/profitability-forecast-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -46,7 +47,7 @@ export default function ProfitabilityClient() {
     setResult(null);
 
     try {
-      const forecastResult = await getProfitabilityForecast(data);
+      const forecastResult = await getProfitabilityForecast(await getIdTokenOrThrow(), data);
       setResult(forecastResult);
     } catch (error) {
       console.error(error);

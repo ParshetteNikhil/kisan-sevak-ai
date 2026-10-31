@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   forecastProfitability,
   type ProfitabilityForecastInput,
@@ -7,12 +8,15 @@ import {
 } from '@/ai/flows/profitability-forecast-flow';
 
 export async function getProfitabilityForecast(
+  idToken: string,
   input: ProfitabilityForecastInput
 ): Promise<ProfitabilityForecastOutput> {
   try {
+    await requireAiUser(idToken);
     const output = await forecastProfitability(input);
     return output;
   } catch (error) {
+    if (error instanceof AuthError) throw new Error(error.message);
     console.error('Error getting profitability forecast:', error);
     throw new Error('Failed to get profitability forecast from AI.');
   }

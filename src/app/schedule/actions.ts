@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   generateSchedule as performScheduleGeneration,
   type GenerateScheduleInput,
@@ -14,9 +15,11 @@ type ClientTask = {
 };
 
 export async function generateAISchedule(
+  idToken: string,
   input: GenerateScheduleInput
 ): Promise<ClientTask[]> {
   try {
+    await requireAiUser(idToken);
     const output = await performScheduleGeneration(input);
     // Map the AI output to the format expected by the client
     const mappedTasks = output.tasks.map(task => ({
@@ -25,6 +28,7 @@ export async function generateAISchedule(
     }));
     return mappedTasks;
   } catch (error) {
+    if (error instanceof AuthError) throw new Error(error.message);
     console.error('Error generating AI schedule:', error);
     throw new Error('Failed to get schedule from AI.');
   }

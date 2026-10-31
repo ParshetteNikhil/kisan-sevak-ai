@@ -1,12 +1,12 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { getFirestore } from 'firebase/firestore';
+import { firebaseConfig, firestoreDatabaseId } from './firebase-config';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// CRITICAL: The app will break without this explicit databaseId
-export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+// AI Studio projects use a named Firestore database; your own project can use "(default)".
+export const db = firestoreDatabaseId ? getFirestore(app, firestoreDatabaseId) : getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -57,17 +57,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   return errInfo;
 }
 
-// Test initial connection to Firestore
-if (typeof window !== 'undefined') {
-  (async function testConnection() {
-    try {
-      await getDocFromServer(doc(db, 'test', 'connection'));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('the client is offline')) {
-        console.warn('Firebase connection: client appears offline.');
-      }
-    }
-  })();
+/**
+ * Returns a fresh Firebase ID token for the signed-in user, to send to the
+ * server with AI requests. Throws a friendly error if nobody is signed in.
+ */
+export async function getIdTokenOrThrow(): Promise<string> {
+  await auth.authStateReady();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Please sign in with Google to use the AI features.');
+  return user.getIdToken();
 }
 
 export default app;

@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getSuggestions } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import type { WeatherBasedSuggestionsOutput } from '@/ai/flows/weather-based-suggestions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles, BrainCircuit, Loader2, CloudSun } from 'lucide-react';
@@ -101,7 +102,7 @@ export default function SuggestionForm() {
     setIsLoading(true);
     setResult(null);
     try {
-      const suggestionResult = await getSuggestions(values);
+      const suggestionResult = await getSuggestions(await getIdTokenOrThrow(), values);
       setResult(suggestionResult);
     } catch (error) {
       console.error('Error getting weather suggestions:', error);

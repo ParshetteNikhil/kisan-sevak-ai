@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-provider';
-import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
+import { db, handleFirestoreError, OperationType, getIdTokenOrThrow } from '@/lib/firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 declare global {
@@ -305,9 +305,10 @@ export default function AiAssistantClient() {
           text: m.content,
         }));
 
+      const idToken = await getIdTokenOrThrow();
       const response = await fetch('/api/gemini/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({
           message: userText,
           history: historyPayload,

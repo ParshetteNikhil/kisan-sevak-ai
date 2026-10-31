@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getIrrigationSuggestion } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import type { IrrigationSuggestionOutput } from '@/ai/flows/irrigation-suggestion-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles, BrainCircuit, Loader2, Droplets, Info, CalendarClock, CloudSun } from 'lucide-react';
@@ -96,7 +97,7 @@ export default function IrrigationClient() {
     setIsLoading(true);
     setResult(null);
     try {
-      const suggestionResult = await getIrrigationSuggestion(values);
+      const suggestionResult = await getIrrigationSuggestion(await getIdTokenOrThrow(), values);
       setResult(suggestionResult);
     } catch (error) {
       console.error('Error getting irrigation suggestion:', error);

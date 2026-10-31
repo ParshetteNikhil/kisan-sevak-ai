@@ -2,6 +2,7 @@
 
 import SoilAnalysisClient from './soil-analysis-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function SoilAnalysisPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export default function SoilAnalysisPage() {
           {t('soil_analysis_desc')}
         </p>
       </div>
-      <SoilAnalysisClient />
+      <SignInRequired feature="Soil analysis"><SoilAnalysisClient /></SignInRequired>
     </div>
   );
 }

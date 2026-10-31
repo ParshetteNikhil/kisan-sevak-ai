@@ -3,6 +3,7 @@
 
 import SuggestionForm from './suggestion-form';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function SuggestionsPage() {
   const { t } = useI18n();
@@ -16,7 +17,7 @@ export default function SuggestionsPage() {
           {t('suggestions_page_description')}
         </p>
       </div>
-      <SuggestionForm />
+      <SignInRequired feature="AI suggestions"><SuggestionForm /></SignInRequired>
     </div>
   );
 }

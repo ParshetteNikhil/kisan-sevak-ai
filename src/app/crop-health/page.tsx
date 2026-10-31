@@ -2,6 +2,7 @@
 
 import CropHealthClient from './crop-health-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function CropHealthPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export default function CropHealthPage() {
           {t('crop_health_diagnosis_desc')}
         </p>
       </div>
-      <CropHealthClient />
+      <SignInRequired feature="Crop diagnosis"><CropHealthClient /></SignInRequired>
     </div>
   );
 }

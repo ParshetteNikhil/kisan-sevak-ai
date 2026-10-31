@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   getSoilAnalysis as performSoilAnalysis,
   type SoilAnalysisInput,
@@ -7,12 +8,15 @@ import {
 } from '@/ai/flows/soil-analysis-flow';
 
 export async function getSoilAnalysis(
+  idToken: string,
   input: SoilAnalysisInput
 ): Promise<SoilAnalysisOutput> {
   try {
+    await requireAiUser(idToken);
     const output = await performSoilAnalysis(input);
     return output;
   } catch (error) {
+    if (error instanceof AuthError) throw new Error(error.message);
     console.error('Error getting soil analysis:', error);
     throw new Error('Failed to get soil analysis from AI.');
   }

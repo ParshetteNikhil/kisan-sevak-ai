@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Globe, MapPin, Search, Loader2, BarChart3, Info, IndianRupee, Truck, Milestone } from 'lucide-react';
 import { analyzeInterStatePrice } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import type { InterStatePriceOutput } from '@/ai/flows/inter-state-price-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -80,7 +81,7 @@ export default function AllIndiaMarketClient() {
     setResult(null);
 
     try {
-      const analysisResult = await analyzeInterStatePrice(data);
+      const analysisResult = await analyzeInterStatePrice(await getIdTokenOrThrow(), data);
       setResult(analysisResult);
     } catch (error) {
       console.error(error);

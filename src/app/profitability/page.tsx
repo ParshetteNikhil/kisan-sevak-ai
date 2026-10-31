@@ -2,6 +2,7 @@
 
 import ProfitabilityClient from './profitability-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function ProfitabilityPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export default function ProfitabilityPage() {
           {t('profitability_forecaster_desc')}
         </p>
       </div>
-      <ProfitabilityClient />
+      <SignInRequired feature="Profitability forecasting"><ProfitabilityClient /></SignInRequired>
     </div>
   );
 }

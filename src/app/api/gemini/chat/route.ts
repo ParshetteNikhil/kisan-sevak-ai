@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGeminiClient } from '@/lib/gemini';
+import { requireAiUser, AuthError } from '@/lib/server-auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const authHeader = req.headers.get('authorization') || '';
+    await requireAiUser(authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null);
+
     const body = await req.json();
     const {
       message,
@@ -16,6 +20,9 @@ export async function POST(req: NextRequest) {
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+    if (message.length > 4000 || !Array.isArray(history) || history.length > 40) {
+      return NextResponse.json({ error: 'Message or conversation is too long. Start a new chat.' }, { status: 413 });
     }
 
     const ai = getGeminiClient();
@@ -125,10 +132,13 @@ When citing prices, fertilizers, dosages, or scientific data, be precise and saf
       mapLocations,
     });
   } catch (error: any) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('Gemini Chat API Error:', error);
     return NextResponse.json(
       {
-        error: error?.message || 'Failed to process Gemini chat request',
+        error: 'The AI assistant is unavailable right now. Please try again.',
       },
       { status: 500 }
     );

@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import AiAssistantClient from './ai-assistant-client';
 import { useI18n } from '@/hooks/use-i18n';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function AiAssistantPage() {
   const { t } = useI18n();
@@ -18,7 +19,7 @@ export default function AiAssistantPage() {
         </p>
       </div>
       <Suspense fallback={<div className="h-[60vh] flex items-center justify-center"><Skeleton className="h-full w-full max-w-5xl rounded-xl" /></div>}>
-        <AiAssistantClient />
+        <SignInRequired feature="The AI assistant"><AiAssistantClient /></SignInRequired>
       </Suspense>
     </div>
   );

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Sparkles, Loader2, Leaf, HeartPulse, ShieldCheck, Stethoscope, Microscope, TestTube2, AlertTriangle } from 'lucide-react';
 import { diagnoseCrop } from './actions';
+import { getIdTokenOrThrow } from '@/lib/firebase';
 import type { DiagnoseCropOutput } from '@/ai/flows/diagnose-crop-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -59,7 +60,7 @@ export default function CropHealthClient() {
     setResult(null);
 
     try {
-      const diagnosisResult = await diagnoseCrop({
+      const diagnosisResult = await diagnoseCrop(await getIdTokenOrThrow(), {
         photoDataUri: imageData,
         problemDescription: description,
       });

@@ -2,6 +2,7 @@
 
 import IrrigationClient from './irrigation-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function IrrigationPage() {
   const { t } = useI18n();
@@ -15,7 +16,7 @@ export default function IrrigationPage() {
           {t('irrigation_advisor_page_desc')}
         </p>
       </div>
-      <IrrigationClient />
+      <SignInRequired feature="Irrigation advice"><IrrigationClient /></SignInRequired>
     </div>
   );
 }
