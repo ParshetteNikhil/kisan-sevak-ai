@@ -50,3 +50,7 @@ google-services*.json
 
 # local env (keep .env.example committed)
 !.env.example
+
+# signing keys
+*.jks
+*.keystore

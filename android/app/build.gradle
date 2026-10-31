@@ -1,0 +1,66 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The website the app opens. Must serve /.well-known/assetlinks.json listing this app's signing key.
+def twaHost = 'kisaan-sevak--agriassist-3593e.asia-southeast1.hosted.app'
+def launchUrl = "https://${twaHost}/?source=android"
+
+android {
+    namespace 'com.kisaansevak.app'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.kisaansevak.app'
+        minSdk 23
+        targetSdk 36
+        // CI sets VERSION_CODE (the GitHub run number) so every upload is higher than the last.
+        versionCode((System.getenv('VERSION_CODE') ?: '1').toInteger())
+        versionName '1.0.' + (System.getenv('VERSION_CODE') ?: '1')
+
+        manifestPlaceholders = [
+            hostName       : twaHost,
+            defaultUrl     : launchUrl,
+            launcherName   : 'Kisaan Sevak',
+            themeColor     : '#4A824A',
+            navigationColor: '#F6F6DF',
+            backgroundColor: '#F6F6DF',
+        ]
+        resValue 'string', 'app_name', 'Kisaan Sevak'
+        resValue 'string', 'asset_statements', """[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "web", "site": "https://${twaHost}" } }]"""
+    }
+
+    signingConfigs {
+        release {
+            def ks = System.getenv('ANDROID_KEYSTORE_FILE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'upload'
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('ANDROID_KEYSTORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        resValues true
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.3'
+}

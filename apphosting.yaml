@@ -15,6 +15,13 @@ env:
     availability:
       - RUNTIME
 
+  # SHA-256 of the Android signing certificates, served at /.well-known/assetlinks.json.
+  # First: upload key. Add the Play "App signing key" fingerprint (comma-separated) once Play Console shows it.
+  - variable: ANDROID_CERT_SHA256
+    value: "C6:F8:BA:03:F6:E4:EC:05:74:C6:AA:86:70:F8:FF:79:C9:41:92:D4:68:A2:03:EE:DB:C3:15:D1:58:FA:96:70"
+    availability:
+      - RUNTIME
+
   # Firebase web config for YOUR project (public values, not secrets).
   # Uncomment and fill these once you move off the AI Studio project.
   # They must be available at BUILD time because Next.js inlines NEXT_PUBLIC_*.
