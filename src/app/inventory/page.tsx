@@ -3,6 +3,7 @@
 
 import InventoryClient from './inventory-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function InventoryPage() {
   const { t } = useI18n();
@@ -16,7 +17,7 @@ export default function InventoryPage() {
       <p className="text-muted-foreground">
         {t('track_inventory_description')}
       </p>
-      <InventoryClient />
+      <SignInRequired feature="Inventory tracking"><InventoryClient /></SignInRequired>
     </div>
   );
 }

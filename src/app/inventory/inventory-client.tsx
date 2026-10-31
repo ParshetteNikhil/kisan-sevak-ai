@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -40,6 +40,10 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Package, Trash2, AlertTriangle, Wheat, FlaskConical, SprayCan, Blocks, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/auth-provider';
+import { db, handleFirestoreError, OperationType } from '@/lib/firebase';
+import { collection, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 type Category = 'Seeds' | 'Fertilizers' | 'Pesticides' | 'Other';
 type Unit = 'kg' | 'litres' | 'packets' | 'tonnes';
@@ -53,14 +57,6 @@ type InventoryItem = {
   lowStockThreshold: number;
 };
 
-const initialInventory: InventoryItem[] = [
-  { id: 'INV001', name: 'Urea Fertilizer', category: 'Fertilizers', quantity: 500, unit: 'kg', lowStockThreshold: 100 },
-  { id: 'INV002', name: 'Wheat Seeds (HD-2967)', category: 'Seeds', quantity: 20, unit: 'packets', lowStockThreshold: 5 },
-  { id: 'INV003', name: 'Cypermethrin Insecticide', category: 'Pesticides', quantity: 15, unit: 'litres', lowStockThreshold: 5 },
-  { id: 'INV004', name: 'Diesel', category: 'Other', quantity: 80, unit: 'litres', lowStockThreshold: 100 },
-  { id: 'INV005', name: 'DAP Fertilizer', category: 'Fertilizers', quantity: 90, unit: 'kg', lowStockThreshold: 100 },
-];
-
 const categoryIcons: Record<Category, React.ReactNode> = {
     Seeds: <Wheat className="h-4 w-4 text-amber-600" />,
     Fertilizers: <FlaskConical className="h-4 w-4 text-sky-600" />,
@@ -69,7 +65,34 @@ const categoryIcons: Record<Category, React.ReactNode> = {
 };
 
 export default function InventoryClient() {
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
+  // Each farmer's inventory lives in users/{uid}/inventory in Firestore.
+  useEffect(() => {
+    if (!user) {
+      setInventory([]);
+      return;
+    }
+    const col = collection(db, 'users', user.uid, 'inventory');
+    const unsubscribe = onSnapshot(
+      col,
+      (snap) => setInventory(snap.docs.map((d) => d.data() as InventoryItem).sort((x, y) => x.name.localeCompare(y.name))),
+      (err) => handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/inventory`)
+    );
+    return () => unsubscribe();
+  }, [user]);
+
+  const saveItem = async (item: InventoryItem) => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'inventory', item.id), item);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory/${item.id}`);
+      toast({ variant: 'destructive', title: 'Could not save the item. Please try again.' });
+    }
+  };
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -85,14 +108,18 @@ export default function InventoryClient() {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const newItem: InventoryItem = {
-      id: `INV${String(inventory.length + 1).padStart(3, '0')}`,
+      id: user ? doc(collection(db, 'users', user.uid, 'inventory')).id : `INV${Date.now()}`,
       name: formData.get('name') as string,
       category: addCategory as Category,
       quantity: Number(formData.get('quantity')),
       unit: addUnit as Unit,
       lowStockThreshold: Number(formData.get('lowStockThreshold')),
     };
-    setInventory([newItem, ...inventory]);
+    if (!newItem.category || !newItem.unit) {
+      toast({ variant: 'destructive', title: 'Please choose a category and unit.' });
+      return;
+    }
+    void saveItem(newItem);
     setIsAddDialogOpen(false);
     event.currentTarget.reset();
     setAddCategory('');
@@ -113,13 +140,19 @@ export default function InventoryClient() {
       lowStockThreshold: Number(formData.get('lowStockThreshold')),
     };
 
-    setInventory(inventory.map(item => item.id === editingItem.id ? updatedItem : item));
+    void saveItem(updatedItem);
     setIsEditDialogOpen(false);
     setEditingItem(null);
   };
   
-  const handleDeleteItem = (id: string) => {
-    setInventory(inventory.filter(item => item.id !== id));
+  const handleDeleteItem = async (id: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'inventory', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/inventory/${id}`);
+      toast({ variant: 'destructive', title: 'Could not delete the item.' });
+    }
   };
   
   const openEditDialog = (item: InventoryItem) => {

@@ -27,6 +27,38 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // Marketplace listings: any signed-in user can browse; only the farmer
+    // who created a listing can change or remove it.
+    function validListing(data) {
+      return data.keys().hasOnly(['id', 'farmerId', 'farmerName', 'contact', 'crop', 'quantity',
+                                  'unit', 'askingPrice', 'location', 'status', 'createdAt'])
+        && data.farmerName is string && data.farmerName.size() <= 100
+        && data.contact is string && data.contact.size() <= 30
+        && data.crop is string && data.crop.size() > 0 && data.crop.size() <= 100
+        && data.quantity is number && data.quantity > 0 && data.quantity <= 1000000
+        && data.unit in ['kg', 'quintal', 'tonnes']
+        && data.askingPrice is number && data.askingPrice > 0 && data.askingPrice <= 100000000
+        && data.location is string && data.location.size() > 0 && data.location.size() <= 150
+        && data.status in ['active', 'sold']
+        && data.createdAt is string && data.createdAt.size() <= 40;
+    }
+
+    match /listings/{listingId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(listingId)
+        && incoming().id == listingId
+        && incoming().farmerId == request.auth.uid
+        && validListing(incoming());
+      allow update: if isSignedIn()
+        && existing().farmerId == request.auth.uid
+        && incoming().farmerId == existing().farmerId
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && validListing(incoming());
+      allow delete: if isSignedIn() && existing().farmerId == request.auth.uid;
+    }
+
     // User profile document
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -34,7 +66,10 @@ service cloud.firestore {
         && isValidId(userId)
         && incoming().id == userId
         && incoming().email is string && incoming().email.size() <= 150
-        && incoming().role in ['farmer', 'buyer'];
+        && incoming().role in ['farmer', 'buyer']
+        && (!('displayName' in incoming()) || (incoming().displayName is string && incoming().displayName.size() <= 100))
+        && (!('contact' in incoming()) || (incoming().contact is string && incoming().contact.size() <= 30))
+        && (!('bio' in incoming()) || (incoming().bio is string && incoming().bio.size() <= 500));
       allow delete: if isOwner(userId);
 
       // Tasks subcollection
@@ -64,6 +99,20 @@ service cloud.firestore {
           && incoming().yield is number;
         allow update: if isOwner(userId)
           && incoming().userId == userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Farm inventory subcollection (seeds, fertilizers, pesticides…)
+      match /inventory/{itemId} {
+        allow list, get: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isValidId(itemId)
+          && incoming().id == itemId
+          && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 150
+          && incoming().category in ['Seeds', 'Fertilizers', 'Pesticides', 'Other']
+          && incoming().unit in ['kg', 'litres', 'packets', 'tonnes']
+          && incoming().quantity is number && incoming().quantity >= 0
+          && incoming().lowStockThreshold is number && incoming().lowStockThreshold >= 0;
         allow delete: if isOwner(userId);
       }
 

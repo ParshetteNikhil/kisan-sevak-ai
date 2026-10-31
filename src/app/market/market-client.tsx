@@ -44,22 +44,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, ShoppingCart, IndianRupee, TrendingUp, TrendingDown, Minus, Trash2, Sprout, Bell, Pencil, MapPin, Loader2, User, PackageSearch } from 'lucide-react';
+import { PlusCircle, ShoppingCart, IndianRupee, TrendingUp, TrendingDown, Minus, Trash2, Sprout, Bell, Pencil, MapPin, Loader2, User, PackageSearch, Phone, CheckCircle2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRole } from '@/context/role-provider';
-import { useProfile } from '@/hooks/use-profile';
+import { useListings, type Listing } from '@/hooks/use-listings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useI18n } from '@/hooks/use-i18n';
 
-type StockItem = {
-  id: string;
-  crop: string;
-  quantity: number;
-  unit: 'kg' | 'tonnes' | 'quintal';
-  askingPrice: number;
-  location: string;
-  farmerName: string;
-};
+type StockItem = Listing;
 
 type MarketPrice = {
   crop: string;
@@ -67,11 +59,6 @@ type MarketPrice = {
   unit: 'kg' | 'tonnes' | 'quintal';
   trend: 'up' | 'down' | 'stable';
 };
-
-const initialStock: StockItem[] = [
-  { id: 'STK001', crop: 'Basmati Rice', quantity: 50, unit: 'quintal', askingPrice: 3500, location: 'Karnal, Haryana', farmerName: 'Farmer Giles' },
-  { id: 'STK002', crop: 'Wheat', quantity: 10, unit: 'tonnes', askingPrice: 21000, location: 'Ludhiana, Punjab', farmerName: 'Farmer Giles' },
-];
 
 const initialMarketPrices: MarketPrice[] = [
   { crop: 'Basmati Rice', price: 3650, unit: 'quintal', trend: 'up' },
@@ -89,8 +76,17 @@ const unitConversion: { [key in StockItem['unit']]: number } = {
 
 export default function MarketClient() {
   const { role, isLoading: isRoleLoading } = useRole();
-  const { profile, isLoading: isProfileLoading } = useProfile();
-  const [stock, setStock] = useState<StockItem[]>(initialStock);
+  const {
+    listings,
+    loading: isListingsLoading,
+    error: listingsError,
+    addListing,
+    setListingStatus,
+    deleteListing,
+  } = useListings(role === 'buyer' ? 'market' : 'mine');
+  // Price alerts only consider produce that is still for sale.
+  const stock = listings.filter((item) => item.status === 'active');
+  const [isSaving, setIsSaving] = useState(false);
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>(initialMarketPrices);
   const [isAddStockDialogOpen, setIsAddStockDialogOpen] = useState(false);
   const [isUpdatePricesDialogOpen, setIsUpdatePricesDialogOpen] = useState(false);
@@ -191,23 +187,39 @@ export default function MarketClient() {
   };
 
 
-  const handleAddStock = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddStock = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const newStockItem: StockItem = {
-      id: `STK${String(stock.length + 1).padStart(3, '0')}`,
-      crop: formData.get('crop') as string,
-      quantity: Number(formData.get('quantity')),
-      unit: unit as StockItem['unit'],
-      askingPrice: Number(formData.get('askingPrice')),
-      location: location,
-      farmerName: profile.name,
-    };
-    setStock([newStockItem, ...stock]);
-    setIsAddStockDialogOpen(false);
-    event.currentTarget.reset();
-    setUnit('');
-    setLocation('');
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const quantity = Number(formData.get('quantity'));
+    const askingPrice = Number(formData.get('askingPrice'));
+    if (!unit) {
+      toast({ variant: 'destructive', title: t('select_a_unit') });
+      return;
+    }
+    if (!(quantity > 0) || !(askingPrice > 0)) {
+      toast({ variant: 'destructive', title: 'Quantity and price must be greater than zero.' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await addListing({
+        crop: formData.get('crop') as string,
+        quantity,
+        unit,
+        askingPrice,
+        location,
+      });
+      setIsAddStockDialogOpen(false);
+      form.reset();
+      setUnit('');
+      setLocation('');
+      toast({ title: 'Listing published', description: 'Buyers can now see this produce in the marketplace.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not save your listing.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleUpdatePrices = (event: React.FormEvent<HTMLFormElement>) => {
@@ -241,10 +253,25 @@ export default function MarketClient() {
     });
   };
 
-  const handleDeleteStock = (id: string) => {
-    setStock(stock.filter(item => item.id !== id));
-    setNotifiedStockIds(ids => ids.filter(notifiedId => notifiedId !== id));
+  const handleDeleteStock = async (id: string) => {
+    try {
+      await deleteListing(id);
+      setNotifiedStockIds(ids => ids.filter(notifiedId => notifiedId !== id));
+    } catch (err) {
+      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not delete the listing.' });
+    }
   };
+
+  const handleToggleSold = async (item: StockItem) => {
+    try {
+      await setListingStatus(item, item.status === 'sold' ? 'active' : 'sold');
+    } catch (err) {
+      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not update the listing.' });
+    }
+  };
+
+  // Farmers manage all their listings (including sold ones); buyers see what is for sale.
+  const rows = role === 'farmer' ? listings : stock;
   
   const TrendIcon = ({ trend }: { trend: MarketPrice['trend'] }) => {
     if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
@@ -252,7 +279,7 @@ export default function MarketClient() {
     return <Minus className="h-4 w-4 text-muted-foreground" />;
   };
 
-  if (isRoleLoading || isProfileLoading) {
+  if (isRoleLoading || isListingsLoading) {
     return (
         <div className="grid gap-8 lg:grid-cols-2">
             <Card>
@@ -382,7 +409,10 @@ export default function MarketClient() {
                     <DialogClose asChild>
                       <Button type="button" variant="secondary">{t('cancel')}</Button>
                     </DialogClose>
-                    <Button type="submit">{t('add_to_stock')}</Button>
+                    <Button type="submit" disabled={isSaving}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t('add_to_stock')}
+                    </Button>
                   </DialogFooter>
                 </form>
               </DialogContent>
@@ -390,6 +420,7 @@ export default function MarketClient() {
           )}
         </CardHeader>
         <CardContent>
+          {listingsError && <p className="mb-4 text-sm text-destructive">{listingsError}</p>}
           <Table>
             <TableHeader>
               <TableRow>
@@ -399,18 +430,19 @@ export default function MarketClient() {
                 <TableHead>{t('asking_price_inr_short')}</TableHead>
                 <TableHead className="text-right">{t('total_asking_value_inr')}</TableHead>
                 <TableHead><MapPin className="inline-block mr-2 h-4 w-4 text-muted-foreground" />{t('location')}</TableHead>
+                {role === 'buyer' && <TableHead><Phone className="inline-block mr-2 h-4 w-4 text-muted-foreground" />Contact</TableHead>}
                 {role === 'farmer' && <TableHead className="text-right">{t('actions')}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stock.length > 0 ? stock.map((item) => {
+              {rows.length > 0 ? rows.map((item) => {
                 const marketInfo = marketPrices.find(
                   (price) => price.crop.toLowerCase() === item.crop.toLowerCase()
                 );
                 
                 let hasPriceAlert = false;
                 let potentialValue = 0;
-                if (marketInfo && role === 'farmer') {
+                if (marketInfo && role === 'farmer' && item.status === 'active') {
                     const stockPricePerKg = item.askingPrice / unitConversion[item.unit];
                     const marketPricePerKg = marketInfo.price / unitConversion[marketInfo.unit];
                     hasPriceAlert = marketPricePerKg > stockPricePerKg;
@@ -421,10 +453,11 @@ export default function MarketClient() {
                 }
 
                 return (
-                <TableRow key={item.id} className={cn(hasPriceAlert && 'bg-primary/10')}>
+                <TableRow key={item.id} className={cn(hasPriceAlert && 'bg-primary/10', item.status === 'sold' && 'opacity-60')}>
                   {role === 'buyer' && <TableCell className="font-medium">{item.farmerName}</TableCell>}
                   <TableCell className="font-medium flex items-center gap-2">
                     {t(item.crop.toLowerCase().replace(/ /g, '_')) || item.crop}
+                    {item.status === 'sold' && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">Sold</span>}
                     {hasPriceAlert && (
                        <TooltipProvider>
                          <Tooltip>
@@ -445,8 +478,23 @@ export default function MarketClient() {
                   <TableCell>₹{item.askingPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})} / {t(item.unit)}</TableCell>
                   <TableCell className="text-right font-medium">₹{(item.quantity * item.askingPrice).toLocaleString('en-IN')}</TableCell>
                   <TableCell>{item.location}</TableCell>
+                  {role === 'buyer' && (
+                    <TableCell>
+                      {item.contact ? (
+                        <a href={`tel:${item.contact.replace(/[^+\d]/g, '')}`} className="text-primary underline-offset-4 hover:underline">
+                          {item.contact}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not shared</span>
+                      )}
+                    </TableCell>
+                  )}
                   {role === 'farmer' && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right whitespace-nowrap">
+                        <Button variant="ghost" size="icon" onClick={() => handleToggleSold(item)} title={item.status === 'sold' ? 'Mark as available' : 'Mark as sold'}>
+                          {item.status === 'sold' ? <RotateCcw className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                          <span className="sr-only">{item.status === 'sold' ? 'Mark as available' : 'Mark as sold'}</span>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteStock(item.id)}>
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">{t('delete')}</span>
@@ -456,7 +504,7 @@ export default function MarketClient() {
                 </TableRow>
               )}) : (
                 <TableRow>
-                  <TableCell colSpan={role === 'farmer' ? 6: 7} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     {role === 'farmer' ? t('no_stock_added') : t('no_stock_to_display')}
                   </TableCell>
                 </TableRow>

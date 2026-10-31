@@ -3,6 +3,7 @@
 
 import MarketClient from './market-client';
 import { useI18n } from '@/hooks/use-i18n';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 export default function MarketPage() {
   const { t } = useI18n();
@@ -16,7 +17,7 @@ export default function MarketPage() {
       <p className="text-muted-foreground">
         {t('marketplace_description')}
       </p>
-      <MarketClient />
+      <SignInRequired feature="The marketplace"><MarketClient /></SignInRequired>
     </div>
   );
 }

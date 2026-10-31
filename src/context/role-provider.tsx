@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { User, Building } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/auth-provider';
 
 type Role = 'farmer' | 'buyer';
 
@@ -20,6 +21,17 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined);
 export function RoleProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<Role | null>('farmer');
   const [isLoading, setIsLoading] = useState(true);
+  const { user, profile, updateUserProfile } = useAuth();
+
+  // For signed-in users the role saved in their Firestore profile is the source of truth.
+  useEffect(() => {
+    if (profile?.role) {
+      setRoleState(profile.role);
+      try {
+        localStorage.setItem('userRole', profile.role);
+      } catch {}
+    }
+  }, [profile?.role]);
 
   useEffect(() => {
     try {
@@ -45,6 +57,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       } catch {}
     }
     setRoleState(newRole);
+    if (newRole && user && profile && profile.role !== newRole) {
+      void updateUserProfile({ role: newRole });
+    }
   };
 
   return (

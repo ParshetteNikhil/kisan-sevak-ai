@@ -31,6 +31,8 @@ import { useI18n } from '@/hooks/use-i18n';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useRecords } from '@/context/records-provider';
 import { useAuth } from '@/context/auth-provider';
+import { useListings, toQuintals, listingValue } from '@/hooks/use-listings';
+import { SignInRequired } from '@/components/auth/sign-in-required';
 
 type WeatherData = {
   temp: number;
@@ -341,57 +343,99 @@ function FarmerDashboard() {
 
 function BuyerDashboard() {
   const { t } = useI18n();
+  const { user, loading: isAuthLoading } = useAuth();
+  const { listings, loading, error } = useListings('market');
+
+  const stats = useMemo(() => {
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const newItemsCount = listings.filter((l) => Date.parse(l.createdAt) > dayAgo).length;
+    const farmerCount = new Set(listings.map((l) => l.farmerId)).size;
+
+    const byCrop = new Map<string, { crop: string; quintals: number }>();
+    for (const l of listings) {
+      const key = l.crop.trim().toLowerCase();
+      const entry = byCrop.get(key) || { crop: l.crop.trim(), quintals: 0 };
+      entry.quintals += toQuintals(l);
+      byCrop.set(key, entry);
+    }
+    const stockByCrop = [...byCrop.values()]
+      .sort((x, y) => y.quintals - x.quintals)
+      .slice(0, 6)
+      .map((c) => ({ crop: c.crop, value: Math.round(c.quintals * 10) / 10 }));
+
+    const byFarmer = new Map<string, { name: string; location: string; value: number }>();
+    for (const l of listings) {
+      const entry = byFarmer.get(l.farmerId) || { name: l.farmerName, location: l.location, value: 0 };
+      entry.value += listingValue(l);
+      byFarmer.set(l.farmerId, entry);
+    }
+    const topFarmers = [...byFarmer.values()].sort((x, y) => y.value - x.value).slice(0, 3);
+
+    return {
+      newItemsCount,
+      farmerCount,
+      topCommodity: stockByCrop[0],
+      stockByCrop,
+      topFarmers,
+      recentAdditions: listings.slice(0, 3),
+    };
+  }, [listings]);
 
   const getPluralKey = (count: number, zeroKey: string, oneKey: string, otherKey: string) => {
     if (count === 0) return zeroKey;
     if (count === 1) return oneKey;
     return otherKey;
+  };
+  const newItemsKey = getPluralKey(stats.newItemsCount, 'new_items_zero', 'new_items_one', 'new_items_other');
+  const cropLabel = (crop: string) => t(crop.toLowerCase().replace(/ /g, '_')) || crop;
+
+  const header = (
+    <div className="flex items-center justify-between space-y-2">
+      <h1 className="text-3xl font-bold tracking-tight font-headline">{t('buyer_dashboard')}</h1>
+      <Link href="/market" passHref>
+        <Button>
+          <Store className="mr-2 h-4 w-4" /> {t('browse_marketplace')}
+        </Button>
+      </Link>
+    </div>
+  );
+
+  if (!isAuthLoading && !user) {
+    return (
+      <>
+        {header}
+        <SignInRequired feature="Live marketplace data">{null}</SignInRequired>
+      </>
+    );
   }
-  
-  // Simulated data for the new dashboard cards
-  const newItemsCount = 2;
-  const newItemsKey = getPluralKey(newItemsCount, 'new_items_zero', 'new_items_one', 'new_items_other');
 
-  const topFarmers = [
-    { name: 'Farmer Giles', location: 'Karnal, Haryana', value: 175000 },
-    { name: 'Saanvi Patel', location: 'Nashik, Maharashtra', value: 120000 },
-    { name: 'Arjun Reddy', location: 'Guntur, Andhra Pradesh', value: 95000 },
-  ];
+  if (isAuthLoading || loading) {
+    return (
+      <>
+        {header}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}
+        </div>
+        <Skeleton className="h-80" />
+      </>
+    );
+  }
 
-  const recentAdditions = [
-      { crop: 'Cotton', farmer: 'Saanvi Patel', quantity: '20 quintal' },
-      { crop: 'Mustard', farmer: 'Arjun Reddy', quantity: '15 quintal' },
-  ];
-
-  const stockByCategoryData = [
-    { category: t('seeds'), value: 450 },
-    { category: t('fertilizers'), value: 1200 },
-    { category: t('pesticides'), value: 300 },
-    { category: t('other'), value: 150 },
-  ];
-
+  const emptyText = 'No produce listed yet. Listings appear here as soon as farmers add them.';
 
   return (
     <>
-      <div className="flex items-center justify-between space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          {t('buyer_dashboard')}
-        </h1>
-        <Link href="/market" passHref>
-          <Button>
-            <Store className="mr-2 h-4 w-4" /> {t('browse_marketplace')}
-          </Button>
-        </Link>
-      </div>
+      {header}
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('market_trend')}</CardTitle>
+            <CardTitle className="text-sm font-medium">Farmers selling</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{t('slightly_up')}</div>
-            <p className="text-xs text-muted-foreground">{t('market_trending_up')}</p>
+            <div className="text-2xl font-bold">{stats.farmerCount}</div>
+            <p className="text-xs text-muted-foreground">With produce currently listed.</p>
           </CardContent>
         </Card>
         <Card>
@@ -400,8 +444,12 @@ function BuyerDashboard() {
             <Sprout className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{t('basmati_rice')}</div>
-            <p className="text-xs text-muted-foreground">{t('highest_trading_volume')}</p>
+            <div className="text-2xl font-bold">{stats.topCommodity ? cropLabel(stats.topCommodity.crop) : '—'}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.topCommodity
+                ? `${stats.topCommodity.value.toLocaleString('en-IN')} quintal available — the most of any crop.`
+                : 'No listings yet.'}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -410,8 +458,8 @@ function BuyerDashboard() {
             <PackageSearch className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{t(newItemsKey, { count: newItemsCount })}</div>
-            <p className="text-xs text-muted-foreground">{t('new_rice_wheat_stock')}</p>
+            <div className="text-2xl font-bold">{t(newItemsKey, { count: stats.newItemsCount })}</div>
+            <p className="text-xs text-muted-foreground">Listed in the last 24 hours.</p>
           </CardContent>
         </Card>
         <Card>
@@ -420,7 +468,7 @@ function BuyerDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">128</div>
+            <div className="text-2xl font-bold">{listings.length.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground">{t('active_listings_in_market')}</p>
           </CardContent>
         </Card>
@@ -429,37 +477,36 @@ function BuyerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>{t('stock_by_category')}</CardTitle>
-            <CardDescription>{t('stock_by_category_desc')}</CardDescription>
+            <CardTitle>Stock by crop</CardTitle>
+            <CardDescription>Quintals of produce currently listed, for the top crops.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={stockByCategoryData}>
-                <XAxis
-                  dataKey="category"
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="#888888"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${value}kg`}
-                />
-                <Tooltip
-                  cursor={{ fill: 'hsl(var(--muted))' }}
-                  contentStyle={{
-                    background: 'hsl(var(--background))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 'var(--radius)',
-                  }}
-                />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {stats.stockByCrop.length === 0 ? (
+              <p className="flex h-[300px] items-center justify-center px-6 text-center text-sm text-muted-foreground">{emptyText}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stats.stockByCrop.map((c) => ({ ...c, crop: cropLabel(c.crop) }))}>
+                  <XAxis dataKey="crop" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value} q`}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'hsl(var(--muted))' }}
+                    formatter={(value: number) => [`${value.toLocaleString('en-IN')} quintal`, 'Available']}
+                    contentStyle={{
+                      background: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'var(--radius)',
+                    }}
+                  />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <div className="space-y-4">
@@ -471,23 +518,27 @@ function BuyerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-4">
-                {topFarmers.map((farmer, index) => (
-                  <li key={index} className="flex items-center gap-4">
-                    <div className="text-sm">
-                      <p className="font-medium">{farmer.name}</p>
-                      <p className="text-xs text-muted-foreground">{farmer.location}</p>
-                    </div>
-                    <div className="ml-auto text-right">
-                      <p className="font-mono text-sm font-medium">₹{farmer.value.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-muted-foreground">{t('total_stock_value')}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {stats.topFarmers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{emptyText}</p>
+              ) : (
+                <ul className="space-y-4">
+                  {stats.topFarmers.map((farmer, index) => (
+                    <li key={index} className="flex items-center gap-4">
+                      <div className="text-sm">
+                        <p className="font-medium">{farmer.name}</p>
+                        <p className="text-xs text-muted-foreground">{farmer.location}</p>
+                      </div>
+                      <div className="ml-auto text-right">
+                        <p className="font-mono text-sm font-medium">₹{Math.round(farmer.value).toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-muted-foreground">{t('total_stock_value')}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
-           <Card>
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <History className="mr-2 h-5 w-5" />
@@ -495,16 +546,23 @@ function BuyerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3">
-                 {recentAdditions.map((item, index) => (
-                    <li key={index}>
-                        <p className="font-medium">{t(item.crop.toLowerCase())}</p>
-                        <p className="text-sm text-muted-foreground">
-                            {t('by')} <span className="font-medium text-foreground">{item.farmer}</span> - <span className="font-mono text-xs">{item.quantity}</span>
-                        </p>
+              {stats.recentAdditions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{emptyText}</p>
+              ) : (
+                <ul className="space-y-3">
+                  {stats.recentAdditions.map((item) => (
+                    <li key={item.id}>
+                      <p className="font-medium">{cropLabel(item.crop)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t('by')} <span className="font-medium text-foreground">{item.farmerName}</span> -{' '}
+                        <span className="font-mono text-xs">
+                          {item.quantity.toLocaleString('en-IN')} {t(item.unit)}
+                        </span>
+                      </p>
                     </li>
-                 ))}
-              </ul>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </div>
