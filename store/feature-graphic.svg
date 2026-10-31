@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#F6F6DF"/>
+  <rect x="0" y="0" width="1024" height="500" fill="url(#g)"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4A824A"/>
+      <stop offset="1" stop-color="#2F5E35"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(150 250) scale(9) translate(-12 -12)" fill="none" stroke="#F6F6DF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+  </g>
+  <text x="320" y="215" font-family="DejaVu Sans, Arial, sans-serif" font-size="72" font-weight="bold" fill="#F6F6DF">Kisaan Sevak</text>
+  <text x="322" y="275" font-family="DejaVu Sans, Arial, sans-serif" font-size="30" fill="#E3EBD5">Smart farming assistant for India</text>
+  <text x="322" y="335" font-family="DejaVu Sans, Arial, sans-serif" font-size="24" fill="#D0DFC4">AI crop diagnosis · Mandi prices · Sell to buyers</text>
+  <text x="322" y="375" font-family="DejaVu Sans, Arial, sans-serif" font-size="24" fill="#D0DFC4">9 Indian languages</text>
+</svg>
