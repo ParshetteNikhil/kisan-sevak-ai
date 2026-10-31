@@ -136,6 +136,13 @@ When citing prices, fertilizers, dosages, or scientific data, be precise and saf
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Gemini Chat API Error:', error);
+    const upstreamStatus = Number(error?.status);
+    if (upstreamStatus === 429 || upstreamStatus === 402) {
+      return NextResponse.json(
+        { error: 'The AI service has reached its usage limit. Please try again later.' },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       {
         error: 'The AI assistant is unavailable right now. Please try again.',
