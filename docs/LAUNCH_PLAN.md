@@ -8,9 +8,9 @@ Goal: working web app on Firebase (free Spark plan) → Android app on Google Pl
 | M2 | Firebase project `agriassist-3593e`: Google sign-in, Firestore (asia-south1), rules published, web config in repo | ✅ Done |
 | M3 | Build green with type checking enforced | ✅ Done |
 | M4 | PWA (manifest, icons, offline page), privacy policy `/privacy`, account deletion `/account/delete`, asset links route, same-origin auth proxy | ✅ Done |
-| M5 | Live on Firebase App Hosting (Blaze, ₹100 budget alert); Gemini key secret (Accessor + Viewer for App Hosting & Cloud Build SAs); authorized domain + OAuth redirect URI. Pending: signed-in smoke test by owner | ✅ Deployed |
+| M5 | Live on Firebase App Hosting (Blaze, ₹100 budget alert); Gemini key secret (Accessor + Viewer for App Hosting & Cloud Build SAs); authorized domain + OAuth redirect URI. Smoke test passed (sign-in, Firestore, AI chat) | ✅ Done |
 | M6 | Android TWA project (`android/`, target API 36), upload key generated, CI builds `.aab`/`.apk` (Actions → Android), asset links verified | ⏳ In progress |
-| M7 | Play Console: account, listing, screenshots, data safety, content rating, closed test (12 testers × 14 days for new personal accounts), production | ⬜ |
+| M7 | Listing kit ready in `store/`. Play Console: account, listing, screenshots, data safety, content rating, closed test (12 testers × 14 days for new personal accounts), production | ⬜ |
 
 ## Decisions
 - Live URL: https://kisaan-sevak--agriassist-3593e.asia-southeast1.hosted.app (App Hosting backend `kisaan-sevak`, asia-southeast1, auto-deploys from `main`).
