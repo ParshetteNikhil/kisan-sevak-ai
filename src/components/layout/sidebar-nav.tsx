@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarContent,
   SidebarFooter,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -48,6 +49,10 @@ import { Skeleton } from '../ui/skeleton';
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeOnMobile = () => {
+    if (isMobile) setOpenMobile(false);
+  };
   const { t, locale, setLocale } = useI18n();
   const { role, setRole } = useRole();
   const { profile, isLoading: isProfileLoading } = useProfile();
@@ -95,7 +100,7 @@ export function SidebarNav() {
                 isActive={pathname === item.href}
                 className="w-full"
               >
-                <Link href={item.href}>
+                <Link href={item.href} onClick={closeOnMobile}>
                   <item.icon className="h-5 w-5" />
                   <span className="font-headline">{t(item.key) || item.label}</span>
                 </Link>
@@ -179,9 +184,9 @@ export function SidebarNav() {
           </Select>
         </div>
         <div className="flex justify-center gap-3 text-[11px] text-muted-foreground">
-          <Link href="/privacy" className="hover:underline">Privacy</Link>
+          <Link href="/privacy" className="hover:underline" onClick={closeOnMobile}>Privacy</Link>
           <span aria-hidden>·</span>
-          <Link href="/account/delete" className="hover:underline">Delete account</Link>
+          <Link href="/account/delete" className="hover:underline" onClick={closeOnMobile}>Delete account</Link>
         </div>
       </SidebarFooter>
     </>

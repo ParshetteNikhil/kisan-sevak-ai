@@ -11,6 +11,7 @@ import { ProfileProvider } from '@/context/profile-provider';
 import { TasksProvider } from '@/context/tasks-provider';
 import { RecordsProvider } from '@/context/records-provider';
 import { Header } from '@/components/layout/header';
+import { BottomNav } from '@/components/layout/bottom-nav';
 import { RegisterServiceWorker } from '@/components/pwa/register-sw';
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export const viewport: Viewport = {
   themeColor: '#4A824A',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -48,9 +50,10 @@ export default function RootLayout({
                     <Sidebar>
                       <SidebarNav />
                     </Sidebar>
-                    <div className="flex flex-col w-full">
+                    <div className="flex min-w-0 flex-col w-full">
                       <Header />
-                      <SidebarInset>{children}</SidebarInset>
+                      <SidebarInset className="min-w-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">{children}</SidebarInset>
+                      <BottomNav />
                     </div>
                   </SidebarProvider>
                 </ProfileProvider>
