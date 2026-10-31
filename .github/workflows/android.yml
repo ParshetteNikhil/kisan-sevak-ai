@@ -75,7 +75,7 @@ jobs:
           target: google_apis_playstore
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
-          script: bash -c 'set -x; adb install -r "$(find out -path "*debug*" -name "*.apk" | head -1)"; adb shell pm list packages | grep -E "chrome|webview" > browsers.txt; adb shell dumpsys package com.android.chrome | grep -m1 versionName >> browsers.txt; adb logcat -c; adb shell monkey -p com.kisaansevak.app -c android.intent.category.LAUNCHER 1; sleep 30; adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity|ResumedActivity" > top.txt; adb exec-out screencap -p > launch-screenshot.png; adb logcat -d -v brief > logcat.txt; true'
+          script: bash -c 'set -x; adb install -r "$(find out -path "*debug*" -name "*.apk" | head -1)"; adb shell pm list packages | grep -E "chrome|webview" > browsers.txt; adb shell dumpsys package com.android.chrome | grep -m1 versionName >> browsers.txt; adb shell am set-debug-app --persistent com.android.chrome; adb shell "echo \"_ --disable-fre --no-default-browser-check --no-first-run\" > /data/local/tmp/chrome-command-line"; adb shell am force-stop com.android.chrome; adb logcat -c; adb shell monkey -p com.kisaansevak.app -c android.intent.category.LAUNCHER 1; sleep 40; adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity|ResumedActivity" > top.txt; adb exec-out screencap -p > launch-screenshot.png; adb logcat -d -v brief > logcat.txt; true'
 
       - name: Report
         if: always()
