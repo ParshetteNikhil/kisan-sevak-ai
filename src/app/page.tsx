@@ -34,6 +34,20 @@ import { useAuth } from '@/context/auth-provider';
 import { useListings, toQuintals, listingValue } from '@/hooks/use-listings';
 import { SignInRequired } from '@/components/auth/sign-in-required';
 
+/** WMO weather codes used by Open-Meteo → short label. */
+function describeWeatherCode(code: number | undefined, t: (key: string) => string): string {
+  if (code === undefined || code === null) return '';
+  if (code === 0) return t('sunny') || 'Clear';
+  if (code <= 2) return 'Partly cloudy';
+  if (code === 3) return 'Overcast';
+  if (code === 45 || code === 48) return 'Fog';
+  if (code >= 51 && code <= 57) return 'Drizzle';
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return 'Rain';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'Snow';
+  if (code >= 95) return 'Thunderstorm';
+  return 'Cloudy';
+}
+
 type WeatherData = {
   temp: number;
   condition: string;
@@ -105,7 +119,7 @@ function FarmerDashboard() {
 
   useEffect(() => {
     try {
-      const cachedWeather = localStorage.getItem('weatherCache');
+      const cachedWeather = localStorage.getItem('weatherCacheV2');
       if (cachedWeather) {
         setWeather(JSON.parse(cachedWeather));
       }
@@ -114,7 +128,7 @@ function FarmerDashboard() {
     }
 
     if (!navigator.geolocation) {
-      if (!localStorage.getItem('weatherCache')) {
+      if (!localStorage.getItem('weatherCacheV2')) {
          setWeatherError(t('geolocation_not_supported'));
       } else {
          setWeatherError(t('could_not_update_forecast'));
@@ -133,16 +147,23 @@ function FarmerDashboard() {
         const data = await response.json();
         const locationName = data.address?.city || data.address?.town || data.address?.village || data.address?.county || t('your_location');
         
+        // Current conditions from Open-Meteo (free, no API key).
+        const wxRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto`
+        );
+        if (!wxRes.ok) throw new Error('Failed to fetch weather');
+        const wx = await wxRes.json();
+
         const newWeather: WeatherData = {
-          temp: 24, // Simulated temperature
-          condition: t('sunny'), // Simulated condition
+          temp: Math.round(wx.current?.temperature_2m),
+          condition: describeWeatherCode(wx.current?.weather_code, t),
           location: locationName,
           timestamp: Date.now(),
         };
         
         setWeather(newWeather);
         setWeatherError(null);
-        localStorage.setItem('weatherCache', JSON.stringify(newWeather));
+        localStorage.setItem('weatherCacheV2', JSON.stringify(newWeather));
 
       } catch (error) {
         console.error('Failed to fetch weather data:', error);
@@ -152,7 +173,7 @@ function FarmerDashboard() {
     
     const handleError = (error: GeolocationPositionError) => {
         console.error('Geolocation error:', error);
-        if (!localStorage.getItem('weatherCache')) {
+        if (!localStorage.getItem('weatherCacheV2')) {
              setWeatherError(t('geolocation_denied'));
         } else {
              setWeatherError(t('could_not_update_forecast'));
