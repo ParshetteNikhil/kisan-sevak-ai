@@ -15,6 +15,12 @@ env:
     availability:
       - RUNTIME
 
+  # data.gov.in API key for Agmarknet mandi prices (Secret Manager: data-gov-in-key).
+  - variable: DATA_GOV_IN_API_KEY
+    secret: data-gov-in-key
+    availability:
+      - RUNTIME
+
   # SHA-256 of the Android signing certificates, served at /.well-known/assetlinks.json.
   # First: upload key. Add the Play "App signing key" fingerprint (comma-separated) once Play Console shows it.
   - variable: ANDROID_CERT_SHA256
