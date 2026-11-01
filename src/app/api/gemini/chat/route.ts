@@ -37,14 +37,10 @@ export async function POST(req: NextRequest) {
     // Model selection based on requirements:
     // gemini-4-argon for particularly complex tasks, gemini-3.8-flash for general tasks, gemini-3.1-flash-lite for fast tasks.
     // When search or maps grounding is requested, use gemini-3.8-flash.
-    let selectedModel = 'gemini-3.8-flash';
-    if (grounding === 'search' || grounding === 'maps') {
-      selectedModel = 'gemini-3.8-flash';
-    } else if (modelTier === 'complex') {
-      selectedModel = 'gemini-4-argon';
-    } else if (modelTier === 'fast') {
-      selectedModel = 'gemini-3.1-flash-lite';
-    }
+    // Free-tier friendly: the light model answers by default; the stronger one is the backup.
+    const LIGHT = process.env.CHAT_MODEL || 'gemini-3.1-flash-lite';
+    const BACKUP = process.env.CHAT_BACKUP_MODEL || 'gemini-3.8-flash';
+    let selectedModel = modelTier === 'complex' ? 'gemini-4-argon' : LIGHT;
 
     // Role-specific System Instructions
     let roleDescription = 'You are Kisaan Sevak Agri-Consultant, a trusted master agronomist.';
@@ -111,8 +107,8 @@ ${typeof farmContext === 'string' && farmContext ? `This farmer's farm: ${farmCo
       response = await ai.models.generateContent({ model: selectedModel, contents, config });
     } catch (e) {
       // Quota reached on the main model: answer with the lighter model instead of failing.
-      if (!isQuota(e) || selectedModel === 'gemini-3.1-flash-lite') throw e;
-      selectedModel = 'gemini-3.1-flash-lite';
+      if (!isQuota(e) || selectedModel === BACKUP) throw e;
+      selectedModel = BACKUP;
       response = await ai.models.generateContent({ model: selectedModel, contents, config });
     }
 

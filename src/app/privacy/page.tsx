@@ -64,9 +64,13 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Service providers that process data for us:</strong> Google Firebase (sign-in, database and hosting),
-          Google Gemini API (AI responses; your prompts and photos are sent to it to generate answers), Open-Meteo
+          Google Gemini API (AI responses; your prompts and photos are sent to it to generate answers. During the
+          free testing phase the app uses Gemini&apos;s free tier, under which Google may use this content to improve
+          its products; do not include personal details in questions or photos), Open-Meteo
           (weather, using your coordinates), OpenStreetMap Nominatim (turning coordinates into a town name) and PubChem
-          (chemical information lookups).
+          (chemical information lookups). Public government data is also used: mandi prices from Agmarknet
+          (data.gov.in) and district soil statistics from the Soil Health Card portal; your district name is used to
+          look these up.
         </li>
         <li>When required by law.</li>
       </ul>

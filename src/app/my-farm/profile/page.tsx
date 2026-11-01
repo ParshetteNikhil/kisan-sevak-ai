@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, Loader2, LocateFixed, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Check, ExternalLink, FlaskConical, Landmark, Loader2, LocateFixed, Minus, Plus } from 'lucide-react';
 import { SignInRequired } from '@/components/auth/sign-in-required';
 import { useFarmProfile, type FarmProfile, type SoilCard } from '@/hooks/use-farm-profile';
 import { useI18n } from '@/hooks/use-i18n';
@@ -16,6 +16,8 @@ import { MicButton } from '@/components/voice/mic-button';
 import { CROPS } from '@/locales/farmer';
 import { getIdTokenOrThrow } from '@/lib/firebase';
 import { readSoilCard } from '../actions';
+import { useSoilBaseline } from '@/hooks/use-soil-baseline';
+import type { LMH } from '@/lib/soil-baseline';
 import { track } from '@/lib/analytics';
 
 const SOILS = [
@@ -67,6 +69,11 @@ function ProfileForm() {
   useEffect(() => {
     if (profile) setForm((f) => ({ ...f, ...profile }));
   }, [profile]);
+
+  // "Karnal, Haryana" typed by hand: take the last part as the state.
+  const stateGuess = form.state || (form.district?.includes(',') ? form.district.split(',').pop()?.trim() : '') || '';
+  const baseline = useSoilBaseline({ state: stateGuess, district: form.district });
+  const hasCardValues = Boolean(form.soilCard && Object.values(form.soilCard).some((v) => typeof v === 'number'));
 
   const set = <K extends keyof FarmProfile>(k: K, v: FarmProfile[K]) => setForm((f) => ({ ...f, [k]: v }));
   const setCard = (k: keyof SoilCard, v: string) =>
@@ -128,9 +135,13 @@ function ProfileForm() {
   };
 
   const submit = async () => {
+    if (!form.mainCrop || !form.district?.trim()) {
+      toast({ variant: 'destructive', title: t('need_crop_location') });
+      return;
+    }
     setSaving(true);
     try {
-      await save(form);
+      await save({ ...form, state: stateGuess || form.state });
       track('farm_profile_saved', { has_card: Boolean(form.soilCard) });
       toast({ title: t('saved') });
     } catch (e) {
@@ -142,103 +153,117 @@ function ProfileForm() {
 
   if (loading) return <Loader2 className="mx-auto h-8 w-8 animate-spin" />;
 
+  const level = (x?: LMH) => {
+    if (!x) return null;
+    const [k, v] = (Object.entries(x) as [keyof LMH, number][]).sort((a, b) => b[1] - a[1])[0];
+    return { k, v };
+  };
+  const levelColor = { low: 'bg-red-100 text-red-900', medium: 'bg-amber-100 text-amber-900', high: 'bg-emerald-100 text-emerald-900' };
+  const lacking = baseline
+    ? Object.entries(baseline.deficientPct)
+        .filter(([, v]) => (v || 0) >= 25)
+        .sort((a, b) => (b[1] || 0) - (a[1] || 0))
+        .map(([k]) => k)
+    : [];
+  const ph = baseline?.ph ? (Object.entries(baseline.ph) as ['acidic' | 'neutral' | 'alkaline', number][]).sort((a, b) => b[1] - a[1])[0] : null;
+  const req = <span className="ml-2 rounded bg-primary/10 px-2 py-0.5 align-middle text-sm font-medium text-primary">{t('required')}</span>;
+
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="border-2 border-primary/40">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl">📍 {t('district')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input className="h-14 text-lg" value={form.district || ''} onChange={(e) => set('district', e.target.value)} placeholder="Karnal, Haryana" />
-            <MicButton onText={(v) => set('district', v)} className="h-14 w-14" />
-          </div>
-          <Button type="button" variant="outline" className="h-12 w-full gap-2 text-base" onClick={detect} disabled={locating}>
-            {locating ? <Loader2 className="h-5 w-5 animate-spin" /> : <LocateFixed className="h-5 w-5" />} {t('detect_location')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl">📐 {t('land_area')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <Button type="button" variant="outline" className="h-14 w-14" onClick={() => set('landArea', Math.max(0.5, (form.landArea || 1) - 0.5))}>
-              <Minus className="h-6 w-6" />
-            </Button>
-            <Input
-              type="number"
-              inputMode="decimal"
-              className="h-14 w-28 text-center text-2xl font-bold"
-              value={form.landArea ?? ''}
-              onChange={(e) => set('landArea', e.target.value === '' ? undefined : Number(e.target.value))}
-            />
-            <Button type="button" variant="outline" className="h-14 w-14" onClick={() => set('landArea', (form.landArea || 0) + 0.5)}>
-              <Plus className="h-6 w-6" />
-            </Button>
-          </div>
-          <ChoiceChips
-            columns={3}
-            value={form.areaUnit}
-            onChange={(v) => set('areaUnit', v)}
-            options={(['acre', 'bigha', 'hectare'] as const).map((u) => ({ value: u, label: t(`unit_${u}`) }))}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl">{t('main_crop')}</CardTitle>
+          <CardTitle className="text-xl">
+            🌱 {t('main_crop')}
+            {req}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ChoiceChips columns={3} value={form.mainCrop} onChange={(v) => set('mainCrop', v)} options={CROPS.map((c) => ({ value: c.key, label: t(`crop_${c.key}`), icon: c.emoji }))} />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl">{t('season')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChoiceChips columns={3} value={form.season} onChange={(v) => set('season', v)} options={SEASONS.map((s) => ({ value: s.value, label: t(`season_${s.value}`), icon: s.icon }))} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl">{t('soil_type')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChoiceChips value={form.soilType} onChange={(v) => set('soilType', v)} options={SOILS.map((s) => ({ value: s.value, label: t(`soil_${s.value}`), icon: s.icon }))} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl">{t('water_source')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChoiceChips value={form.waterSource} onChange={(v) => set('waterSource', v)} options={WATER.map((w) => ({ value: w.value, label: t(`water_${w.value}`), icon: w.icon }))} />
-        </CardContent>
-      </Card>
-
       <Card className="border-2 border-primary/40">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">
+            📍 {t('district')}
+            {req}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button type="button" className="h-14 w-full gap-2 text-lg" onClick={detect} disabled={locating}>
+            {locating ? <Loader2 className="h-5 w-5 animate-spin" /> : <LocateFixed className="h-5 w-5" />} {t('detect_location')}
+          </Button>
+          <div className="flex gap-2">
+            <Input className="h-14 min-w-0 text-lg" value={form.district || ''} onChange={(e) => set('district', e.target.value)} placeholder="Karnal, Haryana" />
+            <MicButton onText={(v) => set('district', v)} className="h-14 w-14 shrink-0" />
+          </div>
+          {form.state && <p className="text-base text-muted-foreground">{form.state}</p>}
+        </CardContent>
+      </Card>
+
+      {baseline && (
+        <Card className="border-sky-200 bg-sky-50/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-start gap-2 text-xl">
+              <Landmark className="mt-1 h-5 w-5 shrink-0" /> {t('govt_soil_title')}
+            </CardTitle>
+            <CardDescription className="text-sm">
+              {t('govt_soil_from', { count: baseline.samples.toLocaleString('en-IN'), place: baseline.district || baseline.state })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {([
+              ['nut_n', baseline.n],
+              ['nut_p', baseline.p],
+              ['nut_k', baseline.k],
+              ['nut_oc', baseline.oc],
+            ] as const).map(([key, x]) => {
+              const l = level(x);
+              if (!l) return null;
+              return (
+                <div key={key} className="flex items-center justify-between gap-2 text-base">
+                  <span className="min-w-0">{t(key)}</span>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ${levelColor[l.k]}`}>
+                    {t(`level_${l.k}`)} · {t('of_fields', { pct: l.v })}
+                  </span>
+                </div>
+              );
+            })}
+            {ph && (
+              <div className="flex items-center justify-between gap-2 text-base">
+                <span>{t('soil_ph_label')}</span>
+                <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-sm font-semibold">
+                  {t(`ph_${ph[0]}`)} · {t('of_fields', { pct: ph[1] })}
+                </span>
+              </div>
+            )}
+            {lacking.length > 0 && (
+              <p className="text-base">
+                <span className="font-semibold">{t('often_lacking')}:</span> {lacking.join(', ')}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <h2 className="pt-2 text-lg font-semibold text-muted-foreground">{t('optional_title')}</h2>
+
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">🧾 {t('soil_card')}</CardTitle>
           <CardDescription className="text-base">{t('soil_card_sub')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <PhotoPicker onPhoto={scanCard} preview={cardPhoto} label={t('scan_card')} />
           {readingCard && (
             <p className="flex items-center justify-center gap-2 text-lg">
               <Loader2 className="h-5 w-5 animate-spin" /> {t('reading_card')}
             </p>
           )}
-          <div>
-            <p className="mb-2 font-semibold">{t('card_values')}</p>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(5.5rem,100%),1fr))] gap-2">
+          {hasCardValues && <p className="text-base font-medium text-primary">✓ {t('soil_card')}</p>}
+          <details className="rounded-lg border p-3" open={false}>
+            <summary className="cursor-pointer text-base font-medium">{t('check_values')}</summary>
+            <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(5.5rem,100%),1fr))] gap-2">
               {CARD_FIELDS.map(({ key, label, unit }) => (
                 <label key={key} className="rounded-lg border p-2 text-sm">
                   <span className="block font-semibold">
@@ -255,7 +280,73 @@ function ProfileForm() {
                 </label>
               ))}
             </div>
+          </details>
+          {!hasCardValues && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <a href="https://soilhealth.dac.gov.in/soilhealthcard" target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border p-3 text-base text-primary">
+                <ExternalLink className="h-4 w-4 shrink-0" /> {t('no_card')}
+              </a>
+              <a href="https://soilhealth.dac.gov.in/soilTestingLabs" target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg border p-3 text-base text-primary">
+                <FlaskConical className="h-4 w-4 shrink-0" /> {t('nearest_lab')}
+              </a>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">{t('soil_type')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChoiceChips columns={3} value={form.soilType} onChange={(v) => set('soilType', v)} options={SOILS.map((s) => ({ value: s.value, label: t(`soil_${s.value}`), icon: s.icon }))} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">{t('water_source')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChoiceChips columns={3} value={form.waterSource} onChange={(v) => set('waterSource', v)} options={WATER.map((w) => ({ value: w.value, label: t(`water_${w.value}`), icon: w.icon }))} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">📐 {t('land_area')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-center gap-3">
+            <Button type="button" variant="outline" className="h-14 w-14 shrink-0" onClick={() => set('landArea', Math.max(0.5, (form.landArea || 1) - 0.5))}>
+              <Minus className="h-6 w-6" />
+            </Button>
+            <Input
+              type="number"
+              inputMode="decimal"
+              className="h-14 w-28 min-w-0 text-center text-2xl font-bold"
+              value={form.landArea ?? ''}
+              onChange={(e) => set('landArea', e.target.value === '' ? undefined : Number(e.target.value))}
+            />
+            <Button type="button" variant="outline" className="h-14 w-14 shrink-0" onClick={() => set('landArea', (form.landArea || 0) + 0.5)}>
+              <Plus className="h-6 w-6" />
+            </Button>
           </div>
+          <ChoiceChips
+            columns={3}
+            value={form.areaUnit}
+            onChange={(v) => set('areaUnit', v)}
+            options={(['acre', 'bigha', 'hectare'] as const).map((u) => ({ value: u, label: t(`unit_${u}`) }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">{t('season')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChoiceChips columns={3} value={form.season} onChange={(v) => set('season', v)} options={SEASONS.map((s) => ({ value: s.value, label: t(`season_${s.value}`), icon: s.icon }))} />
         </CardContent>
       </Card>
 
@@ -269,7 +360,7 @@ function ProfileForm() {
 export default function FarmProfilePage() {
   const { t } = useI18n();
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
+    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 md:p-8">
       <Link href="/my-farm" className="inline-flex items-center gap-2 text-base text-muted-foreground">
         <ArrowLeft className="h-5 w-5" /> {t('tile_farm')}
       </Link>

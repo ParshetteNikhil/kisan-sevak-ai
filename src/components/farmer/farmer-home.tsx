@@ -79,7 +79,7 @@ export function FarmerHome() {
   }, [forecast, t]);
 
   const spoken = [greeting, alert?.text, t('tap_picture')].filter(Boolean).join('. ');
-  const profileIncomplete = user && profile && !(profile.district && profile.soilType && profile.mainCrop);
+  const profileIncomplete = user && profile && !(profile.district && profile.mainCrop);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4">

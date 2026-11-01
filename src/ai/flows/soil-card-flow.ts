@@ -3,7 +3,7 @@
  * Reads a government Soil Health Card (India) from a photo and returns the
  * tested values, so farmers don't have to type numbers.
  */
-import {ai} from '@/ai/genkit';
+import {ai, strongModel} from '@/ai/genkit';
 import {z} from 'genkit';
 import {localeField} from '@/ai/language';
 
@@ -35,6 +35,7 @@ export type SoilCardOutput = z.infer<typeof SoilCardOutputSchema>;
 
 const prompt = ai.definePrompt({
   name: 'soilCardPrompt',
+  model: strongModel,
   input: {schema: SoilCardInputSchema},
   output: {schema: SoilCardOutputSchema},
   prompt: `You read Indian government Soil Health Cards (and similar soil test reports).

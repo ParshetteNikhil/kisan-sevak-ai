@@ -11,8 +11,9 @@ import { getIdTokenOrThrow } from '@/lib/firebase';
 import { withLocale } from '@/lib/with-locale';
 import type { DiagnoseCropOutput } from '@/ai/flows/diagnose-crop-flow';
 import { BusyCard } from '@/components/farmer/busy-card';
+import { useFarmContextText } from '@/hooks/use-soil-baseline';
 import { useI18n } from '@/hooks/use-i18n';
-import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
+import { useFarmProfile } from '@/hooks/use-farm-profile';
 import { PhotoPicker } from '@/components/farmer/photo-picker';
 import { MicButton } from '@/components/voice/mic-button';
 import { ListenButton } from '@/components/voice/listen-button';
@@ -24,6 +25,7 @@ export default function CropHealthClient() {
   const { t, locale } = useI18n();
   const { toast } = useToast();
   const { profile } = useFarmProfile();
+  const farmCtx = useFarmContextText(profile);
   const [photo, setPhoto] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,7 +44,7 @@ export default function CropHealthClient() {
       const r = await withLocale(diagnoseCrop, locale)(await getIdTokenOrThrow(), {
         photoDataUri: photo,
         problemDescription: description || undefined,
-        farmContext: farmContext(profile) || undefined,
+        farmContext: farmCtx || undefined,
       });
       setResult(r);
       track('crop_diagnosis', { healthy: r.isHealthy, issues: r.possibleDiseases.length });

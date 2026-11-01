@@ -11,8 +11,9 @@ import { getIdTokenOrThrow } from '@/lib/firebase';
 import { withLocale } from '@/lib/with-locale';
 import type { SoilAnalysisOutput } from '@/ai/flows/soil-analysis-flow';
 import { BusyCard } from '@/components/farmer/busy-card';
+import { useFarmContextText } from '@/hooks/use-soil-baseline';
 import { useI18n } from '@/hooks/use-i18n';
-import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
+import { useFarmProfile } from '@/hooks/use-farm-profile';
 import { PhotoPicker } from '@/components/farmer/photo-picker';
 import { ListenButton } from '@/components/voice/listen-button';
 import { Feedback } from '@/components/farmer/feedback';
@@ -24,6 +25,7 @@ export default function SoilAnalysisClient() {
   const { t, locale } = useI18n();
   const { toast } = useToast();
   const { profile } = useFarmProfile();
+  const farmCtx = useFarmContextText(profile);
   const [photo, setPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,8 +35,8 @@ export default function SoilAnalysisClient() {
   const location = [profile?.district, profile?.state].filter(Boolean).join(', ');
 
   const run = async () => {
-    if (!photo && !hasCard) {
-      toast({ variant: 'destructive', title: t('soil_photo') });
+    if (!photo && !hasCard && !location) {
+      toast({ variant: 'destructive', title: t('need_crop_location') });
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ export default function SoilAnalysisClient() {
       const r = await withLocale(getSoilAnalysis, locale)(await getIdTokenOrThrow(), {
         soilPhotoDataUri: photo || undefined,
         location: location || 'India',
-        farmContext: farmContext(profile) || undefined,
+        farmContext: farmCtx || undefined,
         weatherContext: weather || undefined,
       });
       setResult(r);

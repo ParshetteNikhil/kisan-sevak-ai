@@ -47,12 +47,14 @@ const prompt = ai.definePrompt({
 
 Use ALL available information, in this order of trust:
 1. Government Soil Health Card values in the farm details (most reliable for nutrients and pH). Use the standard Indian ratings (e.g. available N low < 280 kg/ha, P low < 10 kg/ha (Olsen), K low < 108 kg/ha; pH < 6.5 acidic, > 7.5 alkaline; OC low < 0.5%) to adjust doses from the recommended NPK for the crop.
-2. The farm details: location, main crop, season, land, water source.
-3. The soil photo (colour, texture, cracks, salt crust, moisture), if given.
-4. Typical soils and climate of the district and the weather context.
+2. "Government Soil Health Card data" for the district in the farm details: the share of tested fields that are low/medium/high in each nutrient. When the farmer has no card, use it as the starting point: e.g. if most fields are low in N, plan for low N; flag micronutrients that are often deficient (Zn, B, S, Fe…).
+3. The farm details: location, main crop, season, land, water source.
+4. The soil photo (colour, texture, cracks, salt crust, moisture), if given.
+5. Typical soils and climate of the district and the weather context.
+In "basis", name each source used, e.g. "Your Soil Health Card", "Government district soil data", "Soil photo", "Farm details", "Weather".
 
 If a photo is given and it is NOT soil, set isSoilPhoto=false and still advise from the other information.
-If there is no Soil Health Card, say so in soilStatus and suggest getting a free soil test at the nearest soil testing lab or KVK.
+If there is no Soil Health Card, say in one short sentence that the advice uses district averages, and suggest a free soil test at the nearest soil testing lab or KVK for exact doses.
 Give fertilizer amounts per ONE ACRE. Never recommend banned or highly hazardous pesticides.
 
 Location: {{{location}}}

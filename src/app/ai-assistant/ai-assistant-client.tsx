@@ -28,6 +28,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFarmContextText } from '@/hooks/use-soil-baseline';
 import { useI18n } from '@/hooks/use-i18n';
 import { BusyCard } from '@/components/farmer/busy-card';
 import { cn } from '@/lib/utils';
@@ -35,7 +36,7 @@ import { useAuth } from '@/context/auth-provider';
 import { ListenButton } from '@/components/voice/listen-button';
 import { Feedback } from '@/components/farmer/feedback';
 import SimpleMarkdown from '@/components/farmer/simple-markdown';
-import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
+import { useFarmProfile } from '@/hooks/use-farm-profile';
 import { track } from '@/lib/analytics';
 import { SPEECH_LANG } from '@/lib/speech';
 
@@ -84,6 +85,7 @@ export default function AiAssistantClient() {
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const { profile: farmProfile } = useFarmProfile();
+  const farmCtx = useFarmContextText(farmProfile);
   const { user } = useAuth();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -333,7 +335,7 @@ export default function AiAssistantClient() {
           modelTier,
           role: selectedRole,
           grounding: autoGrounding(userText),
-          farmContext: farmContext(farmProfile) || undefined,
+          farmContext: farmCtx || undefined,
           userLocation,
           locale,
         }),
