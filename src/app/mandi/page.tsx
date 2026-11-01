@@ -19,7 +19,7 @@ import { CROPS } from '@/locales/farmer';
 import { askAI, type AskResult } from '@/lib/ask-ai';
 import { getIdTokenOrThrow } from '@/lib/firebase';
 import { track } from '@/lib/analytics';
-import type { MandiResult } from '@/app/api/mandi/route';
+import { mandiPrices, type MandiResult } from '@/lib/agmarknet';
 
 const rupee = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const median = (xs: number[]) => {
@@ -51,17 +51,25 @@ function MandiPrice() {
       toast({ variant: 'destructive', title: !c ? t('select_crop') : t('your_mandi') });
       return;
     }
-    const [district, stateTyped] = place.split(',').map((x) => x.trim());
-    const state = stateTyped || profile?.state || '';
     setLoading(true);
     setBusy(null);
     setGovt(null);
     setAnswer(null);
     try {
-      const qs = new URLSearchParams({ crop: c.key, district: district || '', state });
-      const res = await fetch(`/api/mandi?${qs}`, { headers: { Authorization: `Bearer ${await getIdTokenOrThrow()}` } });
-      if (!res.ok) throw new Error('busy');
-      const r: MandiResult = await res.json();
+      const cacheKey = `mandi:${c.key}:${place.trim().toLowerCase()}:${new Date().toISOString().slice(0, 13)}`;
+      let r: MandiResult | null = null;
+      try {
+        r = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+      } catch {}
+      if (!r) {
+        const keyRes = await fetch('/api/mandi', { headers: { Authorization: `Bearer ${await getIdTokenOrThrow()}` } });
+        if (!keyRes.ok) throw new Error('busy');
+        const { key } = await keyRes.json();
+        r = await mandiPrices(key, c.key, place, profile?.state);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(r));
+        } catch {}
+      }
       setGovt(r);
       track('mandi_price', { crop: c.key, source: 'agmarknet', level: r.level });
     } catch {
