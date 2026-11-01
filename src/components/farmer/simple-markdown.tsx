@@ -8,7 +8,7 @@ export default function SimpleMarkdown({ text }: { text: string }) {
       part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : <span key={i}>{part.replace(/\*/g, '')}</span>
     );
   return (
-    <div className="space-y-2 text-lg leading-relaxed">
+    <div className="selectable space-y-2 text-lg leading-relaxed">
       {lines.map((l, i) =>
         /^[-*•]\s+/.test(l) || /^\d+[.)]\s+/.test(l) ? (
           <p key={i} className="flex gap-2">
