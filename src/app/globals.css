@@ -86,3 +86,10 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Larger base text on phones: easier to read outdoors and for older eyes. */
+@media (max-width: 767px) {
+  html {
+    font-size: 17px;
+  }
+}

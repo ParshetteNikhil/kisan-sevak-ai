@@ -15,13 +15,7 @@ export type Record = {
   createdAt?: string;
 };
 
-const initialRecords: Record[] = [
-  { id: 'REC001', crop: 'Potatoes', yield: 5200, date: '2023-10-15', notes: 'Slight blight issue mid-season, treated successfully.' },
-  { id: 'REC002', crop: 'Wheat', yield: 4500, date: '2023-08-20', notes: 'Excellent quality, high protein content.' },
-  { id: 'REC003', crop: 'Corn', yield: 7800, date: '2023-09-30', notes: 'Late-season pest damage reduced yield by ~5%.' },
-  { id: 'REC004', crop: 'Barley', yield: 4100, date: '2023-08-25', notes: 'Sold for malting.' },
-  { id: 'REC005', crop: 'Potatoes', yield: 5824, date: '2024-10-12', notes: 'Improved irrigation led to higher yield.' },
-];
+const initialRecords: Record[] = [];
 
 type RecordsContextType = {
   records: Record[];
@@ -67,12 +61,7 @@ export function RecordsProvider({ children }: { children: ReactNode }) {
           loaded.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setRecords(loaded);
         } else {
-          // Seed initial records for new user
-          initialRecords.forEach(async (r) => {
-            const recDocRef = doc(db, 'users', user.uid, 'records', r.id);
-            await setDoc(recDocRef, { ...r, userId: user.uid, createdAt: new Date().toISOString() });
-          });
-          setRecords(initialRecords);
+          setRecords([]);
         }
         setIsLoading(false);
       },

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bot, CalendarDays, LayoutDashboard, Menu, Store, HeartPulse } from 'lucide-react';
+import { Bot, IndianRupee, LayoutDashboard, Menu, Store, HeartPulse } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useRole } from '@/context/role-provider';
 import { useI18n } from '@/hooks/use-i18n';
@@ -25,16 +25,17 @@ export function BottomNav() {
   const items =
     role === 'buyer'
       ? [
-          { href: '/', label: label(t, 'dashboard', 'Home'), icon: LayoutDashboard },
+          { href: '/', label: label(t, 'home', 'Home'), icon: LayoutDashboard },
           { href: '/market', label: label(t, 'marketplace', 'Market'), icon: Store },
-          { href: '/ai-assistant', label: label(t, 'ai_assistant', 'AI'), icon: Bot },
+          { href: '/mandi', label: label(t, 'tile_mandi', 'Price'), icon: IndianRupee },
+          { href: '/ai-assistant', label: label(t, 'tile_ask', 'Ask'), icon: Bot },
         ]
       : [
-          { href: '/', label: label(t, 'dashboard', 'Home'), icon: LayoutDashboard },
-          { href: '/ai-assistant', label: label(t, 'ai_assistant', 'AI'), icon: Bot },
-          { href: '/crop-health', label: label(t, 'crop_health', 'Crop Health'), icon: HeartPulse },
-          { href: '/market', label: label(t, 'marketplace', 'Market'), icon: Store },
-          { href: '/schedule', label: label(t, 'schedule', 'Schedule'), icon: CalendarDays },
+          { href: '/', label: label(t, 'home', 'Home'), icon: LayoutDashboard },
+          { href: '/crop-health', label: label(t, 'tile_crop_doctor', 'Crop Doctor'), icon: HeartPulse },
+          { href: '/ai-assistant', label: label(t, 'tile_ask', 'Ask'), icon: Bot },
+          { href: '/mandi', label: label(t, 'tile_mandi', 'Price'), icon: IndianRupee },
+          { href: '/market', label: label(t, 'tile_sell', 'Sell'), icon: Store },
         ];
 
   return (
@@ -68,7 +69,7 @@ export function BottomNav() {
             className="flex h-16 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium leading-tight text-muted-foreground"
           >
             <Menu className="h-6 w-6" />
-            <span>More</span>
+            <span>{label(t, 'more_tools', 'More')}</span>
           </button>
         </li>
       </ul>

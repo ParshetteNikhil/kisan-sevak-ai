@@ -19,13 +19,7 @@ const getInitialTasks = (): Task[] => {
   const getToday = () => new Date().toISOString().split('T')[0];
   const getFutureDate = (days: number) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  return [
-    { id: 'TSK001', activity: 'Planting', crop: 'Spring Wheat (Field A)', date: '2024-04-20', status: 'Done' },
-    { id: 'TSK002', activity: 'Fertilizing', crop: 'Corn (Field B)', date: '2024-05-10', status: 'Done' },
-    { id: 'TSK003', activity: 'Harvesting', crop: 'Winter Barley (Field C)', date: getToday(), status: 'Upcoming' },
-    { id: 'TSK004', activity: 'Planting', crop: 'Soybeans (Field D)', date: '2024-05-15', status: 'Delayed' },
-    { id: 'TSK005', activity: 'Fertilizing', crop: 'Spring Wheat (Field A)', date: getFutureDate(2), status: 'Upcoming' },
-  ];
+  return [];
 };
 
 type TasksContextType = {

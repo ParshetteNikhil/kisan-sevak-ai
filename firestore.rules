@@ -59,6 +59,17 @@ service cloud.firestore {
       allow delete: if isSignedIn() && existing().farmerId == request.auth.uid;
     }
 
+    // Field-test feedback: signed-in users can add, nobody can read from the app.
+    match /feedback/{id} {
+      allow create: if isSignedIn()
+        && incoming().keys().hasOnly(['uid', 'feature', 'helpful', 'locale', 'createdAt'])
+        && incoming().uid == request.auth.uid
+        && incoming().feature is string && incoming().feature.size() <= 40
+        && incoming().helpful is bool
+        && incoming().locale is string && incoming().locale.size() <= 5
+        && incoming().createdAt is string && incoming().createdAt.size() <= 40;
+    }
+
     // User profile document
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -113,6 +124,20 @@ service cloud.firestore {
           && incoming().unit in ['kg', 'litres', 'packets', 'tonnes']
           && incoming().quantity is number && incoming().quantity >= 0
           && incoming().lowStockThreshold is number && incoming().lowStockThreshold >= 0;
+        allow delete: if isOwner(userId);
+      }
+
+      // Farm profile (location, land, soil, water, crop, Soil Health Card values)
+      match /farm/{docId} {
+        allow get: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && docId == 'main'
+          && incoming().keys().hasOnly(['district', 'state', 'lat', 'lon', 'landArea', 'areaUnit', 'soilType',
+                                        'waterSource', 'mainCrop', 'season', 'soilCard', 'updatedAt'])
+          && (!('district' in incoming()) || (incoming().district is string && incoming().district.size() <= 150))
+          && (!('state' in incoming()) || (incoming().state is string && incoming().state.size() <= 80))
+          && (!('landArea' in incoming()) || (incoming().landArea is number && incoming().landArea >= 0 && incoming().landArea <= 100000))
+          && (!('soilCard' in incoming()) || incoming().soilCard is map);
         allow delete: if isOwner(userId);
       }
 

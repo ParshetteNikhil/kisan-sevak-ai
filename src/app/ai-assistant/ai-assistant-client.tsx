@@ -31,6 +31,20 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-provider';
+import { ListenButton } from '@/components/voice/listen-button';
+import { Feedback } from '@/components/farmer/feedback';
+import SimpleMarkdown from '@/components/farmer/simple-markdown';
+import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
+import { track } from '@/lib/analytics';
+import { SPEECH_LANG } from '@/lib/speech';
+
+/** Uses web search for prices, schemes and weather; maps for "near me" questions. */
+function autoGrounding(text: string): 'none' | 'search' | 'maps' {
+  const q = text.toLowerCase();
+  if (/(near|nearest|nearby|पास|नज़दीक|नजदीक|जवळ|దగ్గర|அருகில்|ಹತ್ತಿರ|কাছে|નજીક|ਨੇੜੇ)/.test(q)) return 'maps';
+  if (/(price|rate|mandi|msp|scheme|yojana|subsidy|weather|rain|भाव|मंडी|दाम|रेट|योजना|सब्सिडी|मौसम|बारिश|बाजार|ధర|మార్కెట్|பதில்|விலை|ಬೆಲೆ|দাম|ભાવ|ਭਾਅ|ਮੰਡੀ)/.test(q)) return 'search';
+  return 'none';
+}
 import { db, handleFirestoreError, OperationType, getIdTokenOrThrow } from '@/lib/firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 
@@ -67,6 +81,7 @@ export default function AiAssistantClient() {
 
   const { toast } = useToast();
   const { t, locale } = useI18n();
+  const { profile: farmProfile } = useFarmProfile();
   const { user } = useAuth();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -121,7 +136,7 @@ export default function AiAssistantClient() {
           {
             id: 'msg-welcome',
             role: 'model',
-            content: `Namaste! I am Kisaan Sevak AI, your dedicated agronomy and farming companion. You can ask me questions about crop management, soil health, pesticide safety, or local market prices.\n\nChoose from **General**, **Fast**, or **Deep Science** models, and enable **Google Search** or **Google Maps Grounding** above.`,
+            content: `${t('greeting_guest')} ${t('tile_ask_sub')}. ${t('speak_example').split(':')[0]} 🎤`,
             modelUsed: 'gemini-3.8-flash',
             timestamp: new Date().toISOString(),
           },
@@ -146,7 +161,7 @@ export default function AiAssistantClient() {
             {
               id: 'msg-welcome',
               role: 'model',
-              content: `Namaste ${user.displayName || 'Farmer'}! Your farm chat history is securely persisted in Firestore cloud storage. Ask any question to get started.`,
+              content: `${t('greeting', { name: (user.displayName || '').split(' ')[0] })} ${t('tile_ask_sub')} 🎤`,
               modelUsed: 'gemini-3.8-flash',
               timestamp: new Date().toISOString(),
             },
@@ -168,7 +183,7 @@ export default function AiAssistantClient() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = locale;
+      recognitionRef.current.lang = SPEECH_LANG[locale] || 'en-IN';
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
@@ -314,7 +329,8 @@ export default function AiAssistantClient() {
           history: historyPayload,
           modelTier,
           role: selectedRole,
-          grounding: groundingMode,
+          grounding: autoGrounding(userText),
+          farmContext: farmContext(farmProfile) || undefined,
           userLocation,
           locale,
         }),
@@ -338,6 +354,7 @@ export default function AiAssistantClient() {
       };
 
       setMessages((prev) => [...prev, botMessage]);
+      track('ask_expert', { grounding: autoGrounding(userText) });
 
       // Save bot turn to Firestore if signed in
       if (user) {
@@ -373,126 +390,21 @@ export default function AiAssistantClient() {
       {
         id: 'msg-welcome',
         role: 'model',
-        content: 'Conversation history reset. How can I assist your farm today?',
+        content: `${t('greeting_guest')} ${t('tile_ask_sub')} 🎤`,
         modelUsed: 'gemini-3.8-flash',
         timestamp: new Date().toISOString(),
       },
     ]);
-    toast({ title: 'Chat cleared', description: 'Starting a fresh conversation thread.' });
+    toast({ title: '✓' });
   };
 
   return (
     <Card className="flex flex-col h-[calc(100vh-14rem)] max-w-5xl mx-auto shadow-sm border">
-      {/* Control Toolbar */}
-      <CardHeader className="p-3 border-b bg-muted/20 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Persona / Role Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Expert Role:</span>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as any)}
-              className="text-xs font-medium border rounded-md px-2 py-1 bg-background text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="agronomist">Master Agronomist (Crops & Pests)</option>
-              <option value="market_strategist">Market & Mandi Price Strategist</option>
-              <option value="bioscience_specialist">Bioscience & Agrochemical Specialist</option>
-              <option value="soil_expert">Soil & Micro-Irrigation Advisor</option>
-            </select>
-          </div>
-
-          {/* Model Tier Selector */}
-          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border text-xs">
-            <span className="text-[11px] text-muted-foreground px-1 font-medium">Model:</span>
-            <button
-              type="button"
-              onClick={() => setModelTier('fast')}
-              className={cn(
-                'px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1',
-                modelTier === 'fast' ? 'bg-primary text-primary-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'
-              )}
-              title="gemini-3.1-flash-lite - Optimized for rapid responses"
-            >
-              <Zap className="h-3 w-3" /> Fast
-            </button>
-            <button
-              type="button"
-              onClick={() => setModelTier('general')}
-              className={cn(
-                'px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1',
-                modelTier === 'general' ? 'bg-primary text-primary-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'
-              )}
-              title="gemini-3.8-flash - Balanced high-intelligence model"
-            >
-              <Sparkles className="h-3 w-3" /> General (3.8 Flash)
-            </button>
-            <button
-              type="button"
-              onClick={() => setModelTier('complex')}
-              className={cn(
-                'px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1',
-                modelTier === 'complex' ? 'bg-primary text-primary-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'
-              )}
-              title="gemini-4-argon - Deep reasoning for complex agronomic tasks"
-            >
-              <BrainCircuit className="h-3 w-3" /> Deep STEM (4 Argon)
-            </button>
-          </div>
-
-          {/* Clear Button */}
-          <Button variant="ghost" size="sm" onClick={handleClearHistory} className="h-7 text-xs text-muted-foreground">
-            <Trash2 className="h-3.5 w-3.5 mr-1" /> Clear
-          </Button>
-        </div>
-
-        {/* Grounding Tool Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Grounding Tools:</span>
-            <div className="flex items-center gap-1 bg-background border rounded-md p-0.5">
-              <button
-                type="button"
-                onClick={() => setGroundingMode('none')}
-                className={cn(
-                  'px-2 py-0.5 rounded text-[11px] transition-colors',
-                  groundingMode === 'none' ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                Direct AI
-              </button>
-              <button
-                type="button"
-                onClick={() => setGroundingMode('search')}
-                className={cn(
-                  'px-2 py-0.5 rounded text-[11px] transition-colors flex items-center gap-1',
-                  groundingMode === 'search' ? 'bg-blue-100 text-blue-800 font-medium' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <Search className="h-3 w-3" /> Google Search (3.8 Flash)
-              </button>
-              <button
-                type="button"
-                onClick={() => setGroundingMode('maps')}
-                className={cn(
-                  'px-2 py-0.5 rounded text-[11px] transition-colors flex items-center gap-1',
-                  groundingMode === 'maps' ? 'bg-emerald-100 text-emerald-800 font-medium' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <MapPin className="h-3 w-3" /> Google Maps (3.8 Flash)
-              </button>
-            </div>
-          </div>
-
-          {user ? (
-            <Badge variant="outline" className="text-[11px] text-emerald-700 bg-emerald-50 border-emerald-200">
-              <ShieldCheck className="h-3 w-3 mr-1" /> Firestore Cloud Persisted
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[11px] text-amber-700 bg-amber-50 border-amber-200">
-              Guest Session (Sign in to persist in Firestore)
-            </Badge>
-          )}
-        </div>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 border-b p-3">
+        <p className="text-base text-muted-foreground">{t('tile_ask_sub')}</p>
+        <Button variant="ghost" size="sm" onClick={handleClearHistory} className="h-10 gap-1 text-base text-muted-foreground">
+          <Trash2 className="h-5 w-5" />
+        </Button>
       </CardHeader>
 
       {/* Messages Scroll Area */}
@@ -514,18 +426,27 @@ export default function AiAssistantClient() {
                   <div className={cn('max-w-[85%] space-y-2', isUser ? 'items-end' : 'items-start')}>
                     <div
                       className={cn(
-                        'rounded-2xl px-4 py-3 text-sm shadow-xs',
+                        'rounded-2xl px-4 py-3 text-base shadow-xs',
                         isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted/70 text-foreground rounded-tl-none border'
                       )}
                     >
                       {/* Message Content */}
-                      <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                      {isUser ? (
+                        <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                      ) : (
+                        <SimpleMarkdown text={message.content} />
+                      )}
+                      {!isUser && message.id !== 'msg-welcome' && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <ListenButton text={message.content} className="h-10" />
+                        </div>
+                      )}
 
                       {/* Search Grounding Citations */}
                       {message.searchCitations && message.searchCitations.length > 0 && (
                         <div className="mt-3 pt-2.5 border-t border-border/50 text-xs">
                           <span className="font-semibold text-[11px] text-blue-700 dark:text-blue-400 flex items-center gap-1 mb-1.5">
-                            <Search className="h-3 w-3" /> Grounded Search Sources:
+                            <Search className="h-3 w-3" /> 🔗
                           </span>
                           <div className="flex flex-wrap gap-1.5">
                             {message.searchCitations.map((chunk, idx) => (
@@ -612,6 +533,10 @@ export default function AiAssistantClient() {
               );
             })}
 
+            {!isLoading && messages.length > 1 && messages[messages.length - 1].role === 'model' && (
+              <Feedback key={messages[messages.length - 1].id} feature="ask_expert" />
+            )}
+
             {isLoading && (
               <div className="flex items-start gap-3">
                 <Avatar className="h-8 w-8 border bg-emerald-600 text-white shrink-0 mt-0.5">
@@ -622,8 +547,7 @@ export default function AiAssistantClient() {
                 <div className="p-3 rounded-2xl rounded-tl-none bg-muted/60 border flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <span>
-                    Consulting {modelTier === 'complex' ? 'Gemini 4 Argon' : modelTier === 'fast' ? 'Gemini 3.1 Flash Lite' : 'Gemini 3.8 Flash'}
-                    {groundingMode === 'search' ? ' with Google Search...' : groundingMode === 'maps' ? ' with Google Maps...' : '...'}
+                    {t('checking')}
                   </span>
                 </div>
               </div>
@@ -638,15 +562,9 @@ export default function AiAssistantClient() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              groundingMode === 'search'
-                ? 'Search latest mandi prices, crop disease news, or weather alerts...'
-                : groundingMode === 'maps'
-                ? 'Find nearest KVK centers, seed stores, grain mandis, or cold storage...'
-                : 'Ask anything about crops, fertilizer dosage, pests, or irrigation...'
-            }
+            placeholder={t('tile_ask_sub')}
             disabled={isLoading}
-            className="flex-1"
+            className="h-14 flex-1 text-lg"
           />
 
           <Button
@@ -655,13 +573,13 @@ export default function AiAssistantClient() {
             size="icon"
             onClick={handleListen}
             disabled={isLoading}
-            className={cn('shrink-0', isListening && 'border-destructive text-destructive animate-pulse')}
-            title="Speech-to-Text Input"
+            className={cn('h-14 w-14 shrink-0 bg-primary text-primary-foreground', isListening && 'animate-pulse')}
+            title={t('speak')}
           >
-            <Mic className="h-4 w-4" />
+            <Mic className="h-7 w-7" />
           </Button>
 
-          <Button type="submit" disabled={isLoading || !input.trim()} className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button type="submit" disabled={isLoading || !input.trim()} className="h-14 w-14 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground">
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>

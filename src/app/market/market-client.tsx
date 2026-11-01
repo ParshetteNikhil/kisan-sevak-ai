@@ -1,591 +1,287 @@
+'use client';
 
-"use client";
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { CheckCircle2, IndianRupee, Loader2, MapPin, Phone, PlusCircle, RotateCcw, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, ShoppingCart, IndianRupee, TrendingUp, TrendingDown, Minus, Trash2, Sprout, Bell, Pencil, MapPin, Loader2, User, PackageSearch, Phone, CheckCircle2, RotateCcw } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useRole } from '@/context/role-provider';
-import { useListings, type Listing } from '@/hooks/use-listings';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useRole } from '@/context/role-provider';
+import { useListings, type Listing, type ListingUnit } from '@/hooks/use-listings';
+import { useFarmProfile } from '@/hooks/use-farm-profile';
 import { useI18n } from '@/hooks/use-i18n';
+import { ChoiceChips } from '@/components/farmer/choice-chips';
+import { MicButton } from '@/components/voice/mic-button';
+import { getIdTokenOrThrow } from '@/lib/firebase';
+import { parseListing } from './actions';
+import { CROPS } from '@/locales/farmer';
+import { track } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 
-type StockItem = Listing;
+type Draft = { crop: string; quantity: string; unit: ListingUnit | ''; askingPrice: string; location: string };
+const EMPTY: Draft = { crop: '', quantity: '', unit: 'quintal', askingPrice: '', location: '' };
 
-type MarketPrice = {
-  crop: string;
-  price: number;
-  unit: 'kg' | 'tonnes' | 'quintal';
-  trend: 'up' | 'down' | 'stable';
-};
-
-const initialMarketPrices: MarketPrice[] = [
-  { crop: 'Basmati Rice', price: 3650, unit: 'quintal', trend: 'up' },
-  { crop: 'Wheat', price: 20500, unit: 'tonnes', trend: 'down' },
-  { crop: 'Cotton', price: 7500, unit: 'quintal', trend: 'stable' },
-  { crop: 'Sugarcane', price: 3500, unit: 'tonnes', trend: 'up' },
-  { crop: 'Mustard', price: 5800, unit: 'quintal', trend: 'stable' },
-];
-
-const unitConversion: { [key in StockItem['unit']]: number } = {
-  kg: 1,
-  quintal: 100,
-  tonnes: 1000,
-};
+/** Shows a crop in the user's language when it is one of the common crops. */
+function useCropLabel() {
+  const { t } = useI18n();
+  return (name: string) => {
+    const first = name.toLowerCase().split(' ')[0];
+    const c = CROPS.find((x) => x.en.toLowerCase().startsWith(first));
+    return c ? `${c.emoji} ${t(`crop_${c.key}`)}` : name;
+  };
+}
 
 export default function MarketClient() {
   const { role, isLoading: isRoleLoading } = useRole();
-  const {
-    listings,
-    loading: isListingsLoading,
-    error: listingsError,
-    addListing,
-    setListingStatus,
-    deleteListing,
-  } = useListings(role === 'buyer' ? 'market' : 'mine');
-  // Price alerts only consider produce that is still for sale.
-  const stock = listings.filter((item) => item.status === 'active');
-  const [isSaving, setIsSaving] = useState(false);
-  const [marketPrices, setMarketPrices] = useState<MarketPrice[]>(initialMarketPrices);
-  const [isAddStockDialogOpen, setIsAddStockDialogOpen] = useState(false);
-  const [isUpdatePricesDialogOpen, setIsUpdatePricesDialogOpen] = useState(false);
-  const [unit, setUnit] = useState<'kg' | 'tonnes' | 'quintal' | ''>('');
-  const [location, setLocation] = useState('');
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [notifiedStockIds, setNotifiedStockIds] = useState<string[]>([]);
+  const { listings, loading, error, addListing, setListingStatus, deleteListing } = useListings(role === 'buyer' ? 'market' : 'mine');
+  const { profile } = useFarmProfile();
+  const { t, locale } = useI18n();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const cropLabel = useCropLabel();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [saving, setSaving] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [cropFilter, setCropFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (role === 'farmer') {
-      const alertsToFire = stock
-        .map(stockItem => {
-          if (notifiedStockIds.includes(stockItem.id)) {
-            return null;
-          }
-          const marketInfo = marketPrices.find(
-            price => price.crop.toLowerCase() === stockItem.crop.toLowerCase()
-          );
+    if (open && !draft.location && profile?.district) setDraft((d) => ({ ...d, location: profile.district || '' }));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-          if (marketInfo) {
-            const stockPricePerKg = stockItem.askingPrice / unitConversion[stockItem.unit];
-            const marketPricePerKg = marketInfo.price / unitConversion[marketInfo.unit];
+  const rows = role === 'farmer' ? listings : listings.filter((l) => l.status === 'active');
+  const visible = cropFilter === 'all' ? rows : rows.filter((l) => l.crop.toLowerCase().includes(cropFilter.toLowerCase()));
 
-            if (marketPricePerKg > stockPricePerKg) {
-                return { stockItem, marketInfo };
-            }
-          }
-          return null;
-        })
-        .filter((item): item is { stockItem: StockItem; marketInfo: MarketPrice } => item !== null);
-
-      if (alertsToFire.length > 0) {
-        alertsToFire.forEach(({ stockItem, marketInfo }) => {
-          toast({
-            title: t('price_alert_for', { crop: stockItem.crop }),
-            description: t('price_alert_desc'),
-          });
-        });
-        setNotifiedStockIds(prev => [...prev, ...alertsToFire.map(({ stockItem }) => stockItem.id)]);
-      }
-    }
-  }, [stock, marketPrices, toast, notifiedStockIds, role, t]);
-
-
-  const handleDetectLocation = async () => {
-    if (!navigator.geolocation) {
-        toast({
-            variant: "destructive",
-            title: t('geolocation_not_supported'),
-            description: t('geolocation_not_supported_desc'),
-        });
-        return;
-    }
-
-    setIsDetectingLocation(true);
-
-    const success = async (position: GeolocationPosition) => {
-        const { latitude, longitude } = position.coords;
-        try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-            );
-            if (!response.ok) throw new Error('Failed to fetch location data');
-            
-            const data = await response.json();
-            const locationName = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown Location';
-            if (!locationName) throw new Error('Could not determine location name from API response.');
-            setLocation(locationName);
-             toast({
-                title: t('location_detected_title'),
-                description: t('location_detected_desc', { location: locationName }),
-            });
-        } catch (error) {
-            console.error("Error fetching location name:", error);
-            toast({
-                variant: "destructive",
-                title: t('location_fetch_error_title'),
-                description: t('location_fetch_error_desc'),
-            });
-        } finally {
-            setIsDetectingLocation(false);
-        }
-    };
-
-    const error = (err: GeolocationPositionError) => {
-        console.error("Geolocation error:", err);
-        toast({
-            variant: "destructive",
-            title: t('geolocation_denied_title'),
-            description: t('geolocation_denied_desc_settings'),
-        });
-        setIsDetectingLocation(false);
-    };
-
-    navigator.geolocation.getCurrentPosition(success, error);
-  };
-
-
-  const handleAddStock = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const quantity = Number(formData.get('quantity'));
-    const askingPrice = Number(formData.get('askingPrice'));
-    if (!unit) {
-      toast({ variant: 'destructive', title: t('select_a_unit') });
-      return;
-    }
-    if (!(quantity > 0) || !(askingPrice > 0)) {
-      toast({ variant: 'destructive', title: 'Quantity and price must be greater than zero.' });
-      return;
-    }
-    setIsSaving(true);
+  const fromVoice = async (text: string) => {
+    setParsing(true);
     try {
-      await addListing({
-        crop: formData.get('crop') as string,
-        quantity,
-        unit,
-        askingPrice,
-        location,
+      const r = await parseListing(await getIdTokenOrThrow(), { text }, locale);
+      setDraft({
+        crop: r.crop || '',
+        quantity: r.quantity ? String(r.quantity) : '',
+        unit: r.unit || 'quintal',
+        askingPrice: r.askingPrice ? String(r.askingPrice) : '',
+        location: r.location || profile?.district || '',
       });
-      setIsAddStockDialogOpen(false);
-      form.reset();
-      setUnit('');
-      setLocation('');
-      toast({ title: 'Listing published', description: 'Buyers can now see this produce in the marketplace.' });
-    } catch (err) {
-      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not save your listing.' });
+      setOpen(true);
+      track('listing_voice_parsed', { complete: Boolean(r.crop && r.quantity && r.askingPrice) });
+    } catch (e) {
+      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
     } finally {
-      setIsSaving(false);
+      setParsing(false);
     }
   };
 
-  const handleUpdatePrices = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    
-    const newMarketPrices = marketPrices.map(item => {
-      const newPriceValue = formData.get(item.crop);
-      if (newPriceValue === null) return item;
-
-      const newPrice = Number(newPriceValue);
-      let newTrend: MarketPrice['trend'] = 'stable';
-      if (newPrice > item.price) {
-        newTrend = 'up';
-      } else if (newPrice < item.price) {
-        newTrend = 'down';
-      }
-
-      return {
-        ...item,
-        price: newPrice,
-        trend: newTrend,
-      };
-    });
-
-    setMarketPrices(newMarketPrices);
-    setIsUpdatePricesDialogOpen(false);
-    toast({
-      title: t('prices_updated_title'),
-      description: t('prices_updated_desc'),
-    });
+  const submit = async () => {
+    const quantity = Number(draft.quantity);
+    const askingPrice = Number(draft.askingPrice);
+    if (!draft.crop.trim() || !draft.unit || !(quantity > 0) || !(askingPrice > 0) || !draft.location.trim()) {
+      toast({ variant: 'destructive', title: t('missing_info_title') });
+      return;
+    }
+    setSaving(true);
+    try {
+      await addListing({ crop: draft.crop, quantity, unit: draft.unit, askingPrice, location: draft.location });
+      track('listing_created', { crop: draft.crop });
+      setOpen(false);
+      setDraft(EMPTY);
+      toast({ title: t('saved') });
+    } catch (e) {
+      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteStock = async (id: string) => {
+  const toggleSold = async (l: Listing) => {
+    try {
+      await setListingStatus(l, l.status === 'sold' ? 'active' : 'sold');
+    } catch (e) {
+      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
+    }
+  };
+
+  const remove = async (id: string) => {
     try {
       await deleteListing(id);
-      setNotifiedStockIds(ids => ids.filter(notifiedId => notifiedId !== id));
-    } catch (err) {
-      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not delete the listing.' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
     }
   };
 
-  const handleToggleSold = async (item: StockItem) => {
-    try {
-      await setListingStatus(item, item.status === 'sold' ? 'active' : 'sold');
-    } catch (err) {
-      toast({ variant: 'destructive', title: err instanceof Error ? err.message : 'Could not update the listing.' });
-    }
-  };
-
-  // Farmers manage all their listings (including sold ones); buyers see what is for sale.
-  const rows = role === 'farmer' ? listings : stock;
-  
-  const TrendIcon = ({ trend }: { trend: MarketPrice['trend'] }) => {
-    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
-    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
-  };
-
-  if (isRoleLoading || isListingsLoading) {
+  if (isRoleLoading || loading) {
     return (
-        <div className="grid gap-8 lg:grid-cols-2">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div className="space-y-2">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                  </div>
-                  <Skeleton className="h-10 w-28" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                     <Skeleton className="h-12 w-full" />
-                     <Skeleton className="h-12 w-full" />
-                     <Skeleton className="h-12 w-full" />
-                  </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <div className="space-y-2">
-                      <Skeleton className="h-6 w-48" />
-                      <Skeleton className="h-4 w-64" />
-                    </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                     <Skeleton className="h-12 w-full" />
-                     <Skeleton className="h-12 w-full" />
-                     <Skeleton className="h-12 w-full" />
-                  </div>
-                </CardContent>
-            </Card>
-        </div>
-    )
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-28 w-full" />
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center">
-                {role === 'farmer' ? <ShoppingCart className="mr-2 h-5 w-5" /> : <PackageSearch className="mr-2 h-5 w-5" />}
-                {role === 'farmer' ? t('my_stock_for_sale') : t('available_stock')}
-            </CardTitle>
-            <CardDescription>
-                {role === 'farmer' ? t('my_stock_for_sale_desc') : t('available_stock_desc')}
-            </CardDescription>
-          </div>
-          {role === 'farmer' && (
-            <Dialog open={isAddStockDialogOpen} onOpenChange={setIsAddStockDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" /> {t('add_stock')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <form onSubmit={handleAddStock}>
-                  <DialogHeader>
-                    <DialogTitle>{t('add_new_stock')}</DialogTitle>
-                    <DialogDescription>
-                      {t('add_new_stock_desc')}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="crop" className="text-right">{t('crop')}</Label>
-                      <Input id="crop" name="crop" className="col-span-3" placeholder={t('eg_basmati_rice')} required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="quantity" className="text-right">{t('quantity')}</Label>
-                      <Input id="quantity" name="quantity" type="number" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="unit" className="text-right">{t('unit')}</Label>
-                      <Select required onValueChange={(value) => setUnit(value as StockItem['unit'])} value={unit}>
-                        <SelectTrigger id="unit" className="col-span-3">
-                          <SelectValue placeholder={t('select_a_unit')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="kg">{t('kilograms')}</SelectItem>
-                          <SelectItem value="quintal">{t('quintal')}</SelectItem>
-                          <SelectItem value="tonnes">{t('tonnes')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="askingPrice" className="text-right">{t('asking_price_inr')}</Label>
-                      <Input id="askingPrice" name="askingPrice" type="number" step="0.01" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="location" className="text-right">{t('location')}</Label>
-                      <div className="col-span-3 flex items-center gap-2">
-                        <Input 
-                          id="location" 
-                          name="location" 
-                          className="flex-grow" 
-                          placeholder={t('eg_nashik_maharashtra')} 
-                          required 
-                          value={location} 
-                          onChange={(e) => setLocation(e.target.value)} 
-                        />
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                type="button" 
-                                variant="outline" 
-                                size="icon" 
-                                onClick={handleDetectLocation}
-                                disabled={isDetectingLocation}
-                              >
-                                {isDetectingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-                                <span className="sr-only">{t('detect_location')}</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t('detect_my_current_location')}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" variant="secondary">{t('cancel')}</Button>
-                    </DialogClose>
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {t('add_to_stock')}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-        </CardHeader>
-        <CardContent>
-          {listingsError && <p className="mb-4 text-sm text-destructive">{listingsError}</p>}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {role === 'buyer' && <TableHead><User className="inline-block mr-2 h-4 w-4 text-muted-foreground" />{t('farmer')}</TableHead>}
-                <TableHead><Sprout className="inline-block mr-2 h-4 w-4 text-muted-foreground" />{t('crop')}</TableHead>
-                <TableHead>{t('quantity')}</TableHead>
-                <TableHead>{t('asking_price_inr_short')}</TableHead>
-                <TableHead className="text-right">{t('total_asking_value_inr')}</TableHead>
-                <TableHead><MapPin className="inline-block mr-2 h-4 w-4 text-muted-foreground" />{t('location')}</TableHead>
-                {role === 'buyer' && <TableHead><Phone className="inline-block mr-2 h-4 w-4 text-muted-foreground" />Contact</TableHead>}
-                {role === 'farmer' && <TableHead className="text-right">{t('actions')}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length > 0 ? rows.map((item) => {
-                const marketInfo = marketPrices.find(
-                  (price) => price.crop.toLowerCase() === item.crop.toLowerCase()
-                );
-                
-                let hasPriceAlert = false;
-                let potentialValue = 0;
-                if (marketInfo && role === 'farmer' && item.status === 'active') {
-                    const stockPricePerKg = item.askingPrice / unitConversion[item.unit];
-                    const marketPricePerKg = marketInfo.price / unitConversion[marketInfo.unit];
-                    hasPriceAlert = marketPricePerKg > stockPricePerKg;
-                    if(hasPriceAlert) {
-                      const totalKgs = item.quantity * unitConversion[item.unit];
-                      potentialValue = totalKgs * marketPricePerKg;
-                    }
-                }
+    <div className="mx-auto max-w-2xl space-y-4">
+      {role === 'farmer' && (
+        <Card className="border-2 border-primary/40">
+          <CardContent className="space-y-3 pt-6 text-center">
+            <MicButton onText={fromVoice} size="lg" label={t('speak_to_list')} className="h-16 w-full text-xl" />
+            {parsing && (
+              <p className="flex items-center justify-center gap-2 text-lg">
+                <Loader2 className="h-5 w-5 animate-spin" /> {t('checking')}
+              </p>
+            )}
+            <p className="text-base text-muted-foreground">{t('speak_example')}</p>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-12 w-full gap-2 text-base"
+              onClick={() => {
+                setDraft(EMPTY);
+                setOpen(true);
+              }}
+            >
+              <PlusCircle className="h-5 w-5" /> {t('add_stock')}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
-                return (
-                <TableRow key={item.id} className={cn(hasPriceAlert && 'bg-primary/10', item.status === 'sold' && 'opacity-60')}>
-                  {role === 'buyer' && <TableCell className="font-medium">{item.farmerName}</TableCell>}
-                  <TableCell className="font-medium flex items-center gap-2">
-                    {t(item.crop.toLowerCase().replace(/ /g, '_')) || item.crop}
-                    {item.status === 'sold' && <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">Sold</span>}
-                    {hasPriceAlert && (
-                       <TooltipProvider>
-                         <Tooltip>
-                           <TooltipTrigger>
-                              <Bell className="h-4 w-4 text-primary" />
-                           </TooltipTrigger>
-                           <TooltipContent className="space-y-1 p-2">
-                             <p>{t('market_price_higher_alert')}</p>
-                             <p className="font-semibold">
-                               {t('potential_value')}: ₹{potentialValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                             </p>
-                           </TooltipContent>
-                         </Tooltip>
-                       </TooltipProvider>
-                    )}
-                  </TableCell>
-                  <TableCell>{item.quantity.toLocaleString()} {t(item.unit)}</TableCell>
-                  <TableCell>₹{item.askingPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})} / {t(item.unit)}</TableCell>
-                  <TableCell className="text-right font-medium">₹{(item.quantity * item.askingPrice).toLocaleString('en-IN')}</TableCell>
-                  <TableCell>{item.location}</TableCell>
-                  {role === 'buyer' && (
-                    <TableCell>
-                      {item.contact ? (
-                        <a href={`tel:${item.contact.replace(/[^+\d]/g, '')}`} className="text-primary underline-offset-4 hover:underline">
-                          {item.contact}
+      <Link href="/mandi" className="flex items-center gap-3 rounded-2xl border bg-amber-50 p-4 text-lg font-medium text-amber-900">
+        <IndianRupee className="h-7 w-7" /> {t('tile_mandi')} · {t('tile_mandi_sub')}
+      </Link>
+
+      {role === 'buyer' && (
+        <ChoiceChips
+          columns={3}
+          value={cropFilter}
+          onChange={setCropFilter}
+          options={[{ value: 'all', label: '✱' }, ...CROPS.slice(0, 8).map((c) => ({ value: c.en.split(' ')[0], label: t(`crop_${c.key}`), icon: c.emoji }))]}
+        />
+      )}
+
+      <h2 className="text-2xl font-bold">{role === 'farmer' ? t('my_stock_for_sale') : t('available_stock')}</h2>
+      {error && <p className="text-destructive">{error}</p>}
+
+      {visible.length === 0 ? (
+        <p className="rounded-2xl border border-dashed p-6 text-center text-lg text-muted-foreground">
+          {role === 'farmer' ? t('no_stock_added') : t('no_stock_to_display')}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {visible.map((l) => (
+            <Card key={l.id} className={cn(l.status === 'sold' && 'opacity-60')}>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center justify-between gap-2 text-xl">
+                  <span>{cropLabel(l.crop)}</span>
+                  {l.status === 'sold' && <span className="rounded bg-muted px-2 py-1 text-sm">✓</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-lg">
+                <p>
+                  <span className="font-bold">
+                    {l.quantity.toLocaleString('en-IN')} {t(l.unit)}
+                  </span>{' '}
+                  · ₹{l.askingPrice.toLocaleString('en-IN')} / {t(l.unit)}
+                </p>
+                <p className="text-muted-foreground">= ₹{(l.quantity * l.askingPrice).toLocaleString('en-IN')}</p>
+                <p className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="h-5 w-5" /> {l.location}
+                </p>
+                {role === 'buyer' && (
+                  <>
+                    <p className="flex items-center gap-2">
+                      <User className="h-5 w-5" /> {l.farmerName}
+                    </p>
+                    {l.contact ? (
+                      <Button asChild size="lg" className="h-14 w-full gap-2 text-lg">
+                        <a href={`tel:${l.contact.replace(/[^+\d]/g, '')}`} onClick={() => track('buyer_call', { crop: l.crop })}>
+                          <Phone className="h-6 w-6" /> {l.contact}
                         </a>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Not shared</span>
-                      )}
-                    </TableCell>
-                  )}
-                  {role === 'farmer' && (
-                    <TableCell className="text-right whitespace-nowrap">
-                        <Button variant="ghost" size="icon" onClick={() => handleToggleSold(item)} title={item.status === 'sold' ? 'Mark as available' : 'Mark as sold'}>
-                          {item.status === 'sold' ? <RotateCcw className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                          <span className="sr-only">{item.status === 'sold' ? 'Mark as available' : 'Mark as sold'}</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStock(item.id)}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">{t('delete')}</span>
-                        </Button>
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    {role === 'farmer' ? t('no_stock_added') : t('no_stock_to_display')}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center"><IndianRupee className="mr-2 h-5 w-5" />{t('live_market_prices')}</CardTitle>
-            <CardDescription>{t('live_market_prices_desc')}</CardDescription>
-          </div>
-           {role === 'buyer' && (
-            <Dialog open={isUpdatePricesDialogOpen} onOpenChange={setIsUpdatePricesDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline"><Pencil className="mr-2 h-4 w-4" /> {t('update_prices')}</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('update_market_prices')}</DialogTitle>
-                  <DialogDescription>
-                    {t('update_market_prices_desc')}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleUpdatePrices}>
-                  <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-                    {marketPrices.map((item) => (
-                      <div key={item.crop} className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor={`price-${item.crop}`} className="text-right truncate">
-                          {t(item.crop.toLowerCase().replace(/ /g, '_')) || item.crop} <span className="text-muted-foreground">({t(item.unit)})</span>
-                        </Label>
-                        <Input
-                          id={`price-${item.crop}`}
-                          name={item.crop}
-                          type="number"
-                          step="0.01"
-                          defaultValue={item.price}
-                          className="col-span-2"
-                          required
-                        />
-                      </div>
-                    ))}
+                      </Button>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('no_contact_provided')}</p>
+                    )}
+                  </>
+                )}
+                {role === 'farmer' && (
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" size="lg" className="h-12 flex-1 gap-2" onClick={() => toggleSold(l)}>
+                      {l.status === 'sold' ? <RotateCcw className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                      {l.status === 'sold' ? '↺' : '✓'}
+                    </Button>
+                    <Button variant="outline" size="lg" className="h-12 w-14" onClick={() => remove(l.id)} aria-label={t('delete')}>
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
                   </div>
-                  <DialogFooter className="pt-4">
-                    <DialogClose asChild>
-                      <Button type="button" variant="secondary">{t('cancel')}</Button>
-                    </DialogClose>
-                    <Button type="submit">{t('save_changes')}</Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-           )}
-        </CardHeader>
-        <CardContent>
-           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead><Sprout className="inline-block mr-2 h-4 w-4 text-muted-foreground" />{t('crop')}</TableHead>
-                <TableHead>{t('market_price_inr')}</TableHead>
-                <TableHead>{t('trend')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {marketPrices.map((item) => (
-                <TableRow key={item.crop}>
-                  <TableCell className="font-medium">{t(item.crop.toLowerCase().replace(/ /g, '_')) || item.crop}</TableCell>
-                  <TableCell>₹{item.price.toFixed(2)} / {t(item.unit)}</TableCell>
-                  <TableCell className="flex items-center gap-2">
-                    <TrendIcon trend={item.trend} />
-                    <span className="capitalize">{t(item.trend)}</span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{t('add_new_stock')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-lg">{t('crop')}</Label>
+              <Input className="h-14 text-lg" value={draft.crop} onChange={(e) => setDraft({ ...draft, crop: e.target.value })} />
+              <div className="mt-2 grid grid-cols-4 gap-2">
+                {CROPS.slice(0, 8).map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className="rounded-lg border p-1 text-2xl"
+                    onClick={() => setDraft({ ...draft, crop: c.en.split(' (')[0] })}
+                    aria-label={t(`crop_${c.key}`)}
+                  >
+                    {c.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-lg">{t('quantity')}</Label>
+              <Input type="number" inputMode="decimal" className="h-14 text-lg" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} />
+              <div className="mt-2">
+                <ChoiceChips
+                  columns={3}
+                  value={draft.unit || undefined}
+                  onChange={(u) => setDraft({ ...draft, unit: u })}
+                  options={(['kg', 'quintal', 'tonnes'] as const).map((u) => ({ value: u, label: t(u) }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-lg">₹ / {draft.unit ? t(draft.unit) : ''}</Label>
+              <Input type="number" inputMode="decimal" className="h-14 text-lg" value={draft.askingPrice} onChange={(e) => setDraft({ ...draft, askingPrice: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-lg">{t('location')}</Label>
+              <div className="flex gap-2">
+                <Input className="h-14 text-lg" value={draft.location} onChange={(e) => setDraft({ ...draft, location: e.target.value })} />
+                <MicButton onText={(v) => setDraft((d) => ({ ...d, location: v }))} className="h-14 w-14" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" size="lg">
+                {t('cancel')}
+              </Button>
+            </DialogClose>
+            <Button type="button" size="lg" onClick={submit} disabled={saving} className="gap-2 text-lg">
+              {saving && <Loader2 className="h-5 w-5 animate-spin" />} {t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

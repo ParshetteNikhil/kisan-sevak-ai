@@ -11,6 +11,7 @@ import mr from '@/locales/mr';
 import pa from '@/locales/pa';
 import gu from '@/locales/gu';
 import kn from '@/locales/kn';
+import { farmerStrings } from '@/locales/farmer';
 
 type I18nContextType = {
   locale: string;
@@ -20,17 +21,10 @@ type I18nContextType = {
 
 export const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-const translations: { [key: string]: { [key: string]: string } } = {
-  en,
-  hi,
-  bn,
-  ta,
-  te,
-  mr,
-  pa,
-  gu,
-  kn,
-};
+const base: { [key: string]: { [key: string]: string } } = { en, hi, bn, ta, te, mr, pa, gu, kn };
+const translations: { [key: string]: { [key: string]: string } } = Object.fromEntries(
+  Object.entries(base).map(([code, dict]) => [code, { ...dict, ...(farmerStrings[code] || {}) }])
+);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState('en');
@@ -39,13 +33,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const savedLocale = localStorage.getItem('locale');
     if (savedLocale && translations[savedLocale]) {
       setLocaleState(savedLocale);
+      document.documentElement.lang = savedLocale;
     }
   }, []);
   
   const setLocale = (newLocale: string) => {
     if (translations[newLocale]) {
-      localStorage.setItem('locale', newLocale);
+      try {
+        localStorage.setItem('locale', newLocale);
+      } catch {}
       setLocaleState(newLocale);
+      if (typeof document !== 'undefined') document.documentElement.lang = newLocale;
     }
   };
 

@@ -59,25 +59,27 @@ export function SidebarNav() {
   const { user, signInWithGoogle, signOut, loading: isAuthLoading } = useAuth();
 
   const farmerMenuItems = [
-    { href: '/', key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/ai-assistant', key: 'ai_assistant', label: 'AI Farming Assistant', icon: Bot },
-    { href: '/crop-science', key: 'crop_science', label: 'Crop Bioscience', icon: Dna },
-    { href: '/schedule', key: 'schedule', label: 'Schedule', icon: CalendarDays },
+    { href: '/', key: 'home', label: 'Home', icon: LayoutDashboard },
+    { href: '/crop-health', key: 'tile_crop_doctor', label: 'Crop Doctor', icon: HeartPulse },
+    { href: '/ai-assistant', key: 'tile_ask', label: 'Ask Expert', icon: Bot },
+    { href: '/mandi', key: 'tile_mandi', label: 'Mandi Price', icon: Calculator },
+    { href: '/market', key: 'tile_sell', label: 'Sell Produce', icon: Store },
+    { href: '/soil-analysis', key: 'tile_soil', label: 'Soil Check', icon: Beaker },
+    { href: '/my-farm', key: 'tile_farm', label: 'My Farm', icon: Package },
+    { href: '/schedule', key: 'my_work', label: 'This week', icon: CalendarDays },
     { href: '/records', key: 'records', label: 'Farm Records', icon: BookText },
-    { href: '/inventory', key: 'inventory', label: 'Inventory', icon: Package },
-    { href: '/soil-analysis', key: 'soil_analysis', label: 'Soil Analysis', icon: Beaker },
-    { href: '/crop-health', key: 'crop_health', label: 'Crop Health', icon: HeartPulse },
-    { href: '/suggestions', key: 'ai_suggestions', label: 'AI Suggestions', icon: BrainCircuit },
     { href: '/irrigation', key: 'irrigation_advisor', label: 'Irrigation Advisor', icon: Droplets },
+    { href: '/suggestions', key: 'ai_suggestions', label: 'AI Suggestions', icon: BrainCircuit },
     { href: '/profitability', key: 'profitability_forecaster', label: 'Profitability', icon: Calculator },
-    { href: '/market', key: 'marketplace', label: 'Marketplace', icon: Store },
     { href: '/all-india-market', key: 'all_india_market', label: 'All India Market', icon: Globe },
+    { href: '/crop-science', key: 'crop_science', label: 'Crop Bioscience', icon: Dna },
   ];
   
   const buyerMenuItems = [
-    { href: '/', key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/', key: 'home', label: 'Home', icon: LayoutDashboard },
     { href: '/market', key: 'marketplace', label: 'Marketplace', icon: Store },
-    { href: '/ai-assistant', key: 'ai_assistant', label: 'AI Assistant', icon: Bot },
+    { href: '/mandi', key: 'tile_mandi', label: 'Mandi Price', icon: Calculator },
+    { href: '/ai-assistant', key: 'tile_ask', label: 'Ask Expert', icon: Bot },
     { href: '/crop-science', key: 'crop_science', label: 'Crop Bioscience', icon: Dna },
   ];
 
@@ -93,8 +95,11 @@ export function SidebarNav() {
       <Separator />
       <SidebarContent className="p-4">
         <SidebarMenu>
-          {menuItems.map((item) => (
+          {menuItems.map((item, index) => (
             <SidebarMenuItem key={item.href}>
+              {role === 'farmer' && index === 9 && (
+                <p className="mb-1 mt-3 px-2 text-xs font-semibold uppercase text-muted-foreground">{t('more_tools')}</p>
+              )}
               <SidebarMenuButton
                 asChild
                 isActive={pathname === item.href}

@@ -42,6 +42,7 @@ export const firebaseConfig = {
   storageBucket: (useEnv ? env.storageBucket : fallback.storageBucket) as string | undefined,
   messagingSenderId: (useEnv ? env.messagingSenderId : fallback.messagingSenderId) as string | undefined,
   appId: (useEnv ? env.appId : fallback.appId) as string,
+  measurementId: (useEnv ? process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID : (fallback as { measurementId?: string }).measurementId) || undefined,
 };
 
 export const firestoreDatabaseId: string | undefined =

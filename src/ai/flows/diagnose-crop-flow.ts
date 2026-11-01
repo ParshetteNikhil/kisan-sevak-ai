@@ -18,7 +18,8 @@ const DiagnoseCropInputSchema = z.object({
     .describe(
       "A photo of the affected plant part, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  problemDescription: z.string().describe('A description of the problem observed by the farmer.'),
+  problemDescription: z.string().optional().describe('What the farmer observed, if they said anything.'),
+  farmContext: z.string().optional().describe('Farm details: location, crop, season, soil.'),
 });
 export type DiagnoseCropInput = z.infer<typeof DiagnoseCropInputSchema>;
 
@@ -54,7 +55,11 @@ Analyze the provided image and the farmer's description of the problem.
 
 Return your full analysis in the specified JSON format.
 
-Farmer's Description: {{{problemDescription}}}
+Keep each description and treatment to 2-3 short sentences. Treatment must say what to buy, how much per litre of water or per acre, and when to spray, plus a cheaper organic option when one works.
+If the photo does not show a plant, set plantName to "Not a plant" and give advice to take a clear, close photo of the affected leaf in daylight.
+
+{{#if farmContext}}Farm details: {{{farmContext}}}{{/if}}
+Farmer's Description: {{#if problemDescription}}{{{problemDescription}}}{{else}}(none){{/if}}
 Photo of Plant: {{media url=photoDataUri}}`,
 });
 

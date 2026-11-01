@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       grounding = 'none',    // 'none' | 'search' | 'maps'
       userLocation,          // { latitude: number, longitude: number }
       locale = 'en',
+      farmContext = '',
     } = body;
 
     if (!message || typeof message !== 'string') {
@@ -53,7 +54,9 @@ export async function POST(req: NextRequest) {
 Your objective is to provide actionable, practical, respectful, and highly accurate advice to Indian farmers, agronomists, and agricultural buyers.
 Explain complex agricultural and bioscience concepts clearly, avoiding unnecessary jargon or explaining technical terms when helpful.
 Respond entirely in the requested language corresponding to locale: "${locale}" (e.g. en = English, hi = Hindi, bn = Bengali, pa = Punjabi, mr = Marathi, te = Telugu, ta = Tamil, kn = Kannada, gu = Gujarati).
-When citing prices, fertilizers, dosages, or scientific data, be precise and safe. Always warn farmers about protective equipment when handling agrochemicals.`;
+When citing prices, fertilizers, dosages, or scientific data, be precise and safe. Always warn farmers about protective equipment when handling agrochemicals.
+Many users cannot read well and will LISTEN to your answer: use short sentences, everyday words, no tables, at most 6 bullet points, and Indian units (quintal, acre, ₹).
+${typeof farmContext === 'string' && farmContext ? `This farmer's farm: ${farmContext.slice(0, 1500)}. Use it to make advice specific to their field.` : ''}`;
 
     // Build configuration
     const config: any = {

@@ -4,7 +4,7 @@ import { collection, deleteDoc, doc, getDocs, query, where, writeBatch } from 'f
 import { deleteUser, reauthenticateWithPopup, type User } from 'firebase/auth';
 import { db, googleProvider } from '@/lib/firebase';
 
-const USER_SUBCOLLECTIONS = ['tasks', 'records', 'inventory', 'chat_messages', 'bioscience_queries'];
+const USER_SUBCOLLECTIONS = ['tasks', 'records', 'inventory', 'chat_messages', 'bioscience_queries', 'farm'];
 
 async function deleteDocsInBatches(refs: { path: string }[]) {
   for (let i = 0; i < refs.length; i += 400) {
