@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiRetry } from '@/lib/ai-retry';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   getIrrigationSuggestion as performIrrigationSuggestion,
@@ -14,7 +15,7 @@ export async function getIrrigationSuggestion(
 ): Promise<IrrigationSuggestionOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await performIrrigationSuggestion({ ...input, locale });
+    const output = await withAiRetry(() => performIrrigationSuggestion({ ...input, locale }));
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

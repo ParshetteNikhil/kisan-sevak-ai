@@ -186,14 +186,14 @@ export default function InventoryClient() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">{t('item_name')}</Label>
-                  <Input id="name" name="name" className="col-span-3" required placeholder={t('eg_urea_fertilizer')} />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="name" className="sm:text-right">{t('item_name')}</Label>
+                  <Input id="name" name="name" className="sm:col-span-3" required placeholder={t('eg_urea_fertilizer')} />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">{t('category')}</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="category" className="sm:text-right">{t('category')}</Label>
                     <Select required onValueChange={(value) => setAddCategory(value as Category)} value={addCategory}>
-                      <SelectTrigger id="category" className="col-span-3">
+                      <SelectTrigger id="category" className="sm:col-span-3">
                         <SelectValue placeholder={t('select_a_category')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -204,14 +204,14 @@ export default function InventoryClient() {
                       </SelectContent>
                     </Select>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quantity" className="text-right">{t('quantity')}</Label>
-                    <Input id="quantity" name="quantity" type="number" className="col-span-3" required />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="quantity" className="sm:text-right">{t('quantity')}</Label>
+                    <Input id="quantity" name="quantity" type="number" className="sm:col-span-3" required />
                   </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="unit" className="text-right">{t('unit')}</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="unit" className="sm:text-right">{t('unit')}</Label>
                     <Select required onValueChange={(value) => setAddUnit(value as Unit)} value={addUnit}>
-                      <SelectTrigger id="unit" className="col-span-3">
+                      <SelectTrigger id="unit" className="sm:col-span-3">
                         <SelectValue placeholder={t('select_a_unit')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -222,9 +222,9 @@ export default function InventoryClient() {
                       </SelectContent>
                     </Select>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="lowStockThreshold" className="text-right">{t('low_stock_at')}</Label>
-                  <Input id="lowStockThreshold" name="lowStockThreshold" type="number" className="col-span-3" required placeholder={t('eg_100')} />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="lowStockThreshold" className="sm:text-right">{t('low_stock_at')}</Label>
+                  <Input id="lowStockThreshold" name="lowStockThreshold" type="number" className="sm:col-span-3" required placeholder={t('eg_100')} />
                 </div>
               </div>
               <DialogFooter>
@@ -294,14 +294,14 @@ export default function InventoryClient() {
                 <DialogDescription>{t('update_supply_details')}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-name" className="text-right">{t('item_name')}</Label>
-                  <Input id="edit-name" name="name" className="col-span-3" required defaultValue={editingItem.name} />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="edit-name" className="sm:text-right">{t('item_name')}</Label>
+                  <Input id="edit-name" name="name" className="sm:col-span-3" required defaultValue={editingItem.name} />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-category" className="text-right">{t('category')}</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="edit-category" className="sm:text-right">{t('category')}</Label>
                     <Select required onValueChange={(value) => setEditCategory(value as Category)} value={editCategory}>
-                      <SelectTrigger id="edit-category" className="col-span-3">
+                      <SelectTrigger id="edit-category" className="sm:col-span-3">
                         <SelectValue placeholder={t('select_a_category')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -312,14 +312,14 @@ export default function InventoryClient() {
                       </SelectContent>
                     </Select>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-quantity" className="text-right">{t('quantity')}</Label>
-                    <Input id="edit-quantity" name="quantity" type="number" className="col-span-3" required defaultValue={editingItem.quantity} />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="edit-quantity" className="sm:text-right">{t('quantity')}</Label>
+                    <Input id="edit-quantity" name="quantity" type="number" className="sm:col-span-3" required defaultValue={editingItem.quantity} />
                   </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="edit-unit" className="text-right">{t('unit')}</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="edit-unit" className="sm:text-right">{t('unit')}</Label>
                     <Select required onValueChange={(value) => setEditUnit(value as Unit)} value={editUnit}>
-                      <SelectTrigger id="edit-unit" className="col-span-3">
+                      <SelectTrigger id="edit-unit" className="sm:col-span-3">
                         <SelectValue placeholder={t('select_a_unit')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -330,9 +330,9 @@ export default function InventoryClient() {
                       </SelectContent>
                     </Select>
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="edit-lowStockThreshold" className="text-right">{t('low_stock_at')}</Label>
-                  <Input id="edit-lowStockThreshold" name="lowStockThreshold" type="number" className="col-span-3" required defaultValue={editingItem.lowStockThreshold} />
+                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="edit-lowStockThreshold" className="sm:text-right">{t('low_stock_at')}</Label>
+                  <Input id="edit-lowStockThreshold" name="lowStockThreshold" type="number" className="sm:col-span-3" required defaultValue={editingItem.lowStockThreshold} />
                 </div>
               </div>
               <DialogFooter>

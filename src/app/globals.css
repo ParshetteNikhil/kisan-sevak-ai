@@ -87,9 +87,19 @@ body {
   }
 }
 
-/* Larger base text on phones: easier to read outdoors and for older eyes. */
+/* Larger base text on phones (easier outdoors and for older eyes), scaled to the screen:
+   15px on very small phones, 17px on normal phones and up. */
 @media (max-width: 767px) {
   html {
-    font-size: 17px;
+    font-size: clamp(15px, 0.55rem + 2vw, 17px);
   }
+}
+/* Long words in Indian languages wrap instead of spilling out of boxes. */
+h1, h2, h3, p, span, a, button, label, li {
+  overflow-wrap: anywhere;
+}
+/* Keep text from growing in landscape on phones. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }

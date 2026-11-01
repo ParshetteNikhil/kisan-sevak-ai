@@ -82,13 +82,13 @@ export function FarmerHome() {
   const profileIncomplete = user && profile && !(profile.district && profile.soilType && profile.mainCrop);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-headline text-3xl font-bold">{greeting}</h1>
-          <p className="text-lg text-muted-foreground">{t('tap_picture')}</p>
+    <div className="mx-auto w-full max-w-3xl space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-headline text-[clamp(1.3rem,6vw,1.6rem)] font-bold leading-tight">{greeting} 🙏</h1>
+          <p className="text-base text-muted-foreground">{t('tap_picture')}</p>
         </div>
-        <ListenButton text={spoken} size="lg" className="h-14 shrink-0 px-4 text-base" />
+        <ListenButton text={spoken} size="lg" label="" className="h-14 w-14 shrink-0 rounded-full p-0 [&_svg]:h-6 [&_svg]:w-6" />
       </div>
 
       {alert && (
@@ -121,18 +121,18 @@ export function FarmerHome() {
         </Link>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(8.5rem,100%),1fr))] gap-3">
         {TILES.map(({ href, key, icon: Icon, color }) => (
           <Link
             key={href}
             href={href}
             onClick={() => track('home_tile', { tile: key })}
-            className="flex min-h-[148px] flex-col items-center justify-center gap-2 rounded-3xl border bg-card p-3 text-center shadow-sm active:scale-[0.98]"
+            className="flex min-h-[9rem] min-w-0 flex-col items-center justify-center gap-2 rounded-3xl border bg-card p-3 text-center shadow-sm active:scale-[0.98]"
           >
-            <span className={cn('rounded-2xl p-4 text-white', color)}>
-              <Icon className="h-10 w-10" strokeWidth={2.2} />
+            <span className={cn('rounded-2xl p-[clamp(0.75rem,3.5vw,1rem)] text-white', color)}>
+              <Icon className="h-[clamp(2rem,9vw,2.5rem)] w-[clamp(2rem,9vw,2.5rem)]" strokeWidth={2.2} />
             </span>
-            <span className="text-xl font-bold leading-tight">{t(key)}</span>
+            <span className="text-[clamp(1.05rem,4.8vw,1.25rem)] font-bold leading-tight">{t(key)}</span>
             <span className="text-sm leading-tight text-muted-foreground">{t(`${key}_sub`)}</span>
           </Link>
         ))}

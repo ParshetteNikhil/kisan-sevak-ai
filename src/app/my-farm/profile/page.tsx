@@ -120,8 +120,8 @@ function ProfileForm() {
       if (r.testDate) card.testDate = r.testDate;
       setForm((f) => ({ ...f, soilCard: { ...(f.soilCard || {}), ...card } }));
       track('soil_card_read', { fields: Object.keys(card).length });
-    } catch (e) {
-      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
+    } catch {
+      toast({ variant: 'destructive', title: t('busy_title') });
     } finally {
       setReadingCard(false);
     }
@@ -238,7 +238,7 @@ function ProfileForm() {
           )}
           <div>
             <p className="mb-2 font-semibold">{t('card_values')}</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(5.5rem,100%),1fr))] gap-2">
               {CARD_FIELDS.map(({ key, label, unit }) => (
                 <label key={key} className="rounded-lg border p-2 text-sm">
                   <span className="block font-semibold">

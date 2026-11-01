@@ -68,8 +68,8 @@ export default function MarketClient() {
       });
       setOpen(true);
       track('listing_voice_parsed', { complete: Boolean(r.crop && r.quantity && r.askingPrice) });
-    } catch (e) {
-      toast({ variant: 'destructive', title: e instanceof Error ? e.message : 'Error' });
+    } catch {
+      toast({ variant: 'destructive', title: t('busy_title') });
     } finally {
       setParsing(false);
     }
@@ -232,7 +232,7 @@ export default function MarketClient() {
             <div>
               <Label className="text-lg">{t('crop')}</Label>
               <Input className="h-14 text-lg" value={draft.crop} onChange={(e) => setDraft({ ...draft, crop: e.target.value })} />
-              <div className="mt-2 grid grid-cols-4 gap-2">
+              <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(3.25rem,1fr))] gap-2">
                 {CROPS.slice(0, 8).map((c) => (
                   <button
                     key={c.key}

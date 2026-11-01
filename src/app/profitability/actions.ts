@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiRetry } from '@/lib/ai-retry';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   forecastProfitability,
@@ -14,7 +15,7 @@ export async function getProfitabilityForecast(
 ): Promise<ProfitabilityForecastOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await forecastProfitability({ ...input, locale });
+    const output = await withAiRetry(() => forecastProfitability({ ...input, locale }));
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiRetry } from '@/lib/ai-retry';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   diagnoseCrop as performCropDiagnosis,
@@ -14,7 +15,7 @@ export async function diagnoseCrop(
 ): Promise<DiagnoseCropOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await performCropDiagnosis({ ...input, locale });
+    const output = await withAiRetry(() => performCropDiagnosis({ ...input, locale }));
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

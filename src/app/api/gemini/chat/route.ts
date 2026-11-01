@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGeminiClient } from '@/lib/gemini';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 
+// Same question asked again (e.g. the same crop price on the same day) is answered from memory
+// for 6 hours, so repeat taps do not use AI quota.
+const CACHE_MS = 6 * 60 * 60 * 1000;
+const cache = new Map<string, { at: number; body: unknown }>();
+const isQuota = (e: any) => [429, 402].includes(Number(e?.status)) || /RESOURCE_EXHAUSTED|quota/i.test(String(e?.message));
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization') || '';
@@ -96,11 +102,19 @@ ${typeof farmContext === 'string' && farmContext ? `This farmer's farm: ${farmCo
       parts: [{ text: message }],
     });
 
-    const response = await ai.models.generateContent({
-      model: selectedModel,
-      contents,
-      config,
-    });
+    const cacheKey = history.length === 0 ? JSON.stringify([message, locale, role, grounding, modelTier, farmContext]) : '';
+    const hit = cacheKey ? cache.get(cacheKey) : undefined;
+    if (hit && Date.now() - hit.at < CACHE_MS) return NextResponse.json(hit.body);
+
+    let response;
+    try {
+      response = await ai.models.generateContent({ model: selectedModel, contents, config });
+    } catch (e) {
+      // Quota reached on the main model: answer with the lighter model instead of failing.
+      if (!isQuota(e) || selectedModel === 'gemini-3.1-flash-lite') throw e;
+      selectedModel = 'gemini-3.1-flash-lite';
+      response = await ai.models.generateContent({ model: selectedModel, contents, config });
+    }
 
     const replyText = response.text || '';
 
@@ -127,30 +141,20 @@ ${typeof farmContext === 'string' && farmContext ? `This farmer's farm: ${farmCo
       }
     }
 
-    return NextResponse.json({
-      text: replyText,
-      modelUsed: selectedModel,
-      groundingUsed: grounding,
-      searchCitations,
-      mapLocations,
-    });
+    const result = { text: replyText, modelUsed: selectedModel, groundingUsed: grounding, searchCitations, mapLocations };
+    if (cacheKey && replyText) {
+      if (cache.size > 500) cache.delete(cache.keys().next().value as string);
+      cache.set(cacheKey, { at: Date.now(), body: result });
+    }
+    return NextResponse.json(result);
   } catch (error: any) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Gemini Chat API Error:', error);
-    const upstreamStatus = Number(error?.status);
-    if (upstreamStatus === 429 || upstreamStatus === 402) {
-      return NextResponse.json(
-        { error: 'The AI service has reached its usage limit. Please try again later.' },
-        { status: 503 }
-      );
+    if (isQuota(error)) {
+      return NextResponse.json({ error: 'busy', code: 'busy' }, { status: 503 });
     }
-    return NextResponse.json(
-      {
-        error: 'The AI assistant is unavailable right now. Please try again.',
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'unavailable', code: 'busy' }, { status: 500 });
   }
 }

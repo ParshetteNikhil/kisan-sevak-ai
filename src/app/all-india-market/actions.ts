@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiRetry } from '@/lib/ai-retry';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   getInterStatePriceAnalysis,
@@ -14,7 +15,7 @@ export async function analyzeInterStatePrice(
 ): Promise<InterStatePriceOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await getInterStatePriceAnalysis({ ...input, locale });
+    const output = await withAiRetry(() => getInterStatePriceAnalysis({ ...input, locale }));
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

@@ -78,21 +78,21 @@ export default function RecordsClient() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="crop" className="text-right">{t('crop')}</Label>
-                  <Input id="crop" name="crop" className="col-span-3" required />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="crop" className="sm:text-right">{t('crop')}</Label>
+                  <Input id="crop" name="crop" className="sm:col-span-3" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="yield" className="text-right">{t('yield_kg')}</Label>
-                  <Input id="yield" name="yield" type="number" className="col-span-3" required />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="yield" className="sm:text-right">{t('yield_kg')}</Label>
+                  <Input id="yield" name="yield" type="number" className="sm:col-span-3" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="date" className="text-right">{t('date')}</Label>
-                  <Input id="date" name="date" type="date" className="col-span-3" required />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="date" className="sm:text-right">{t('date')}</Label>
+                  <Input id="date" name="date" type="date" className="sm:col-span-3" required />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="notes" className="text-right">{t('notes')}</Label>
-                  <Textarea id="notes" name="notes" className="col-span-3" />
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                  <Label htmlFor="notes" className="sm:text-right">{t('notes')}</Label>
+                  <Textarea id="notes" name="notes" className="sm:col-span-3" />
                 </div>
               </div>
               <DialogFooter>

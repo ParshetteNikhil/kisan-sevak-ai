@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiRetry } from '@/lib/ai-retry';
 import { requireAiUser, AuthError } from '@/lib/server-auth';
 import {
   generateSchedule as performScheduleGeneration,
@@ -21,7 +22,7 @@ export async function generateAISchedule(
 ): Promise<ClientTask[]> {
   try {
     await requireAiUser(idToken);
-    const output = await performScheduleGeneration({ ...input, locale });
+    const output = await withAiRetry(() => performScheduleGeneration({ ...input, locale }));
     // Map the AI output to the format expected by the client
     const mappedTasks = output.tasks.map(task => ({
       ...task,

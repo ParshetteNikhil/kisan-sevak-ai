@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
+import { BusyCard } from '@/components/farmer/busy-card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-provider';
 import { ListenButton } from '@/components/voice/listen-button';
@@ -73,6 +74,7 @@ export default function AiAssistantClient() {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatFailed, setChatFailed] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [modelTier, setModelTier] = useState<'fast' | 'general' | 'complex'>('general');
   const [selectedRole, setSelectedRole] = useState<'agronomist' | 'market_strategist' | 'bioscience_specialist' | 'soil_expert'>('agronomist');
@@ -293,6 +295,7 @@ export default function AiAssistantClient() {
     const newHistory = [...messages, userMessage];
     setMessages(newHistory);
     setIsLoading(true);
+    setChatFailed(false);
 
     // Save user turn to Firestore if signed in
     if (user) {
@@ -375,11 +378,7 @@ export default function AiAssistantClient() {
       }
     } catch (error: any) {
       console.error('Chat error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Gemini Assistant Error',
-        description: error.message || 'Could not communicate with Gemini model.',
-      });
+      setChatFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -537,6 +536,7 @@ export default function AiAssistantClient() {
               <Feedback key={messages[messages.length - 1].id} feature="ask_expert" />
             )}
 
+            {chatFailed && !isLoading && <BusyCard />}
             {isLoading && (
               <div className="flex items-start gap-3">
                 <Avatar className="h-8 w-8 border bg-emerald-600 text-white shrink-0 mt-0.5">

@@ -10,6 +10,7 @@ import { getSoilAnalysis } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
 import { withLocale } from '@/lib/with-locale';
 import type { SoilAnalysisOutput } from '@/ai/flows/soil-analysis-flow';
+import { BusyCard } from '@/components/farmer/busy-card';
 import { useI18n } from '@/hooks/use-i18n';
 import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
 import { PhotoPicker } from '@/components/farmer/photo-picker';
@@ -25,6 +26,7 @@ export default function SoilAnalysisClient() {
   const { profile } = useFarmProfile();
   const [photo, setPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [result, setResult] = useState<SoilAnalysisOutput | null>(null);
 
   const hasCard = Boolean(profile?.soilCard && Object.keys(profile.soilCard).length);
@@ -36,6 +38,7 @@ export default function SoilAnalysisClient() {
       return;
     }
     setLoading(true);
+    setFailed(false);
     setResult(null);
     try {
       const weather = await weatherContext(profile?.lat, profile?.lon);
@@ -47,8 +50,8 @@ export default function SoilAnalysisClient() {
       });
       setResult(r);
       track('soil_advice', { photo: Boolean(photo), card: hasCard, health: r.soilHealth });
-    } catch (e) {
-      toast({ variant: 'destructive', title: e instanceof Error ? e.message : t('soil_analysis_failed_desc') });
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -90,6 +93,8 @@ export default function SoilAnalysisClient() {
       <Button onClick={run} disabled={loading} size="lg" className="h-16 w-full gap-2 text-xl">
         {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <FlaskConical className="h-6 w-6" />} {loading ? t('checking') : t('get_soil_advice')}
       </Button>
+
+      {failed && <BusyCard onRetry={run} />}
 
       {result && (
         <div className="space-y-3">

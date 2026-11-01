@@ -10,6 +10,7 @@ import { diagnoseCrop } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
 import { withLocale } from '@/lib/with-locale';
 import type { DiagnoseCropOutput } from '@/ai/flows/diagnose-crop-flow';
+import { BusyCard } from '@/components/farmer/busy-card';
 import { useI18n } from '@/hooks/use-i18n';
 import { useFarmProfile, farmContext } from '@/hooks/use-farm-profile';
 import { PhotoPicker } from '@/components/farmer/photo-picker';
@@ -26,6 +27,7 @@ export default function CropHealthClient() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [result, setResult] = useState<DiagnoseCropOutput | null>(null);
 
   const run = async () => {
@@ -34,6 +36,7 @@ export default function CropHealthClient() {
       return;
     }
     setLoading(true);
+    setFailed(false);
     setResult(null);
     try {
       const r = await withLocale(diagnoseCrop, locale)(await getIdTokenOrThrow(), {
@@ -43,8 +46,8 @@ export default function CropHealthClient() {
       });
       setResult(r);
       track('crop_diagnosis', { healthy: r.isHealthy, issues: r.possibleDiseases.length });
-    } catch (e) {
-      toast({ variant: 'destructive', title: e instanceof Error ? e.message : t('analysis_failed_desc') });
+    } catch {
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -81,6 +84,8 @@ export default function CropHealthClient() {
           </Button>
         </CardContent>
       </Card>
+
+      {failed && <BusyCard onRetry={run} />}
 
       {result && (
         <div className="space-y-3">
