@@ -129,7 +129,7 @@ service cloud.firestore {
 
       // Farm profile (location, land, soil, water, crop, Soil Health Card values)
       match /farm/{docId} {
-        allow get: if isOwner(userId);
+        allow get, list: if isOwner(userId);
         allow create, update: if isOwner(userId)
           && docId == 'main'
           && incoming().keys().hasOnly(['district', 'state', 'lat', 'lon', 'landArea', 'areaUnit', 'soilType',
