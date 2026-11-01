@@ -12,7 +12,7 @@ Goal: working web app on Firebase (free Spark plan) → Android app on Google Pl
 | M6 | Mobile UI (app bar + Menu, bottom nav, safe areas) ✅. Android TWA project (`android/`, target API 36), upload key generated, CI builds `.aab`/`.apk`, emulator launch test gates the APK link (releases/android-latest). APK signed with the upload key (fingerprint matches assetlinks) → opens full-screen | ✅ Done |
 | M6b | Farmer-first redesign: language-first onboarding, picture tiles, voice in/out, 9 languages, Crop Doctor, Ask Expert, Mandi price, sell by voice, Farm Profile with Soil Health Card photo reading, hybrid soil advice (photo + card + profile + 30-day weather), weather alerts, feedback + analytics, offline caching. Firestore rules for `farm` and `feedback` published | ✅ Done |
 | M6c | Field test (APK from releases/android-latest): kit in `store/field-test-kit.pdf` (poster with APK QR, observation sheet, facilitator checklist). Results: Firestore `feedback`, Analytics events. 12+ testers for 14 days doubles as the Play closed test | ⏳ Next (owner) |
-| M6d | Fixes from first phone test: Mandi Price from Agmarknet (data.gov.in key in secret `data-gov-in-key`), busy card + AI quota fallback/cache, crop chips, header/greeting, adaptive layout on all screen sizes. Pending: paid Gemini key | ⏳ |
+| M6d | Fixes from first phone test: Mandi Price from Agmarknet (data.gov.in key in secret `data-gov-in-key`), busy card + AI quota fallback/cache, crop chips, header/greeting, adaptive layout on all screen sizes. Govt district soil baseline (Soil Health Card portal) + My Farm needs only crop + location. Free-tier Gemini (Flash-Lite default) for field test | ✅ Done |
 | M7 | Listing kit ready in `store/`. Play Console: account, listing, screenshots, data safety, content rating, closed test (12 testers × 14 days for new personal accounts), production | ⬜ |
 
 ## Decisions
@@ -23,7 +23,7 @@ Goal: working web app on Firebase (free Spark plan) → Android app on Google Pl
 
 ## Needs the owner (can't be done by Claude)
 - ~~Gemini API key → secret `gemini-api-key`~~ ✅ done.
-- Paid Gemini API key from the agriassist-3593e project → new version of secret `gemini-api-key` (removes AI usage-limit errors; free tier lets Google use the data).
+- Before Play launch: paid Gemini API key from the agriassist-3593e project → new version of secret `gemini-api-key` (free tier has small daily limits and lets Google use the data).
 - Field test with 12 to 20 farmers using `store/field-test-kit.pdf`; collect testers' Gmail for the Play closed test.
 - Native-speaker check of the 8 non-English languages (`src/locales/farmer.ts`).
 - Google Play developer account registration fee and identity verification.
