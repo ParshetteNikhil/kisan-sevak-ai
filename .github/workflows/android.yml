@@ -1,4 +1,5 @@
 name: Android
+# Signed with the upload key from repo secrets ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD (added 2026-11-01).
 
 on:
   push:
