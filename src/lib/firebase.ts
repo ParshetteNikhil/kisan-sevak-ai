@@ -1,12 +1,22 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore';
 import { firebaseConfig, firestoreDatabaseId } from './firebase-config';
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// AI Studio projects use a named Firestore database; your own project can use "(default)".
-export const db = firestoreDatabaseId ? getFirestore(app, firestoreDatabaseId) : getFirestore(app);
+// On phones, keep a local copy of the farmer's data so saved farm details, tasks and
+// listings still show on a weak or missing signal (writes sync when back online).
+function makeDb(): Firestore {
+  const settings =
+    typeof window !== 'undefined' ? { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) } : {};
+  try {
+    return firestoreDatabaseId ? initializeFirestore(app, settings, firestoreDatabaseId) : initializeFirestore(app, settings);
+  } catch {
+    return firestoreDatabaseId ? getFirestore(app, firestoreDatabaseId) : getFirestore(app);
+  }
+}
+export const db = makeDb();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
