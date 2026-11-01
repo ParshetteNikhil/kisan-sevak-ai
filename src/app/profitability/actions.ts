@@ -9,11 +9,12 @@ import {
 
 export async function getProfitabilityForecast(
   idToken: string,
-  input: ProfitabilityForecastInput
+  input: ProfitabilityForecastInput,
+  locale?: string
 ): Promise<ProfitabilityForecastOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await forecastProfitability(input);
+    const output = await forecastProfitability({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

@@ -9,8 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const SoilAnalysisInputSchema = z.object({
+  locale: localeField,
   soilPhotoDataUri: z
     .string()
     .describe(
@@ -36,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'soilAnalysisPrompt',
   input: {schema: SoilAnalysisInputSchema},
   output: {schema: SoilAnalysisOutputSchema},
-  prompt: `You are an expert agronomist and soil scientist with a goal to maximize farmer yield.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert agronomist and soil scientist with a goal to maximize farmer yield.
 
 First, you MUST determine if the provided image is a photograph of soil.
 - If the image IS NOT of soil, you must return a specific JSON object:

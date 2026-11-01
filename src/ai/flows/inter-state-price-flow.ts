@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 // Tool to get market price based on crop and location
 const getMarketPriceByLocation = ai.defineTool(
@@ -58,6 +59,7 @@ const getDistance = ai.defineTool(
 
 
 const InterStatePriceInputSchema = z.object({
+  locale: localeField,
   cropName: z.string().describe('The name of the crop.'),
   quantity: z.number().describe('The quantity of the crop.'),
   unit: z.enum(['kg', 'quintal', 'tonnes']).describe('The unit for the quantity.'),
@@ -86,7 +88,7 @@ const prompt = ai.definePrompt({
     input: {schema: InterStatePriceInputSchema},
     output: {schema: InterStatePriceOutputSchema},
     tools: [getMarketPriceByLocation, getDistance],
-    prompt: `You are an agricultural logistics and pricing expert. A farmer wants to analyze the profitability of selling their produce in a different state.
+    prompt: FARMER_LANGUAGE_RULE + `You are an agricultural logistics and pricing expert. A farmer wants to analyze the profitability of selling their produce in a different state.
 
     Farmer's Data:
     - Origin: {{{origin}}}

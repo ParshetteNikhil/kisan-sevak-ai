@@ -9,8 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const GenerateScheduleInputSchema = z.object({
+  locale: localeField,
   cropName: z.string().describe('The name of the crop.'),
   plantingDate: z
     .string()
@@ -40,7 +42,7 @@ const prompt = ai.definePrompt({
   name: 'generateSchedulePrompt',
   input: {schema: GenerateScheduleInputSchema},
   output: {schema: GenerateScheduleOutputSchema},
-  prompt: `You are an expert agronomist providing a farming schedule. A farmer is planting '{{{cropName}}}' in '{{{fieldName}}}' on '{{{plantingDate}}}'.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert agronomist providing a farming schedule. A farmer is planting '{{{cropName}}}' in '{{{fieldName}}}' on '{{{plantingDate}}}'.
 
 Based on standard agricultural practices for '{{{cropName}}}', generate a list of key activities from planting to harvest.
 The list should include tasks like 'Fertilizing', 'Weeding', 'Pest Control', 'Irrigation', and 'Harvesting'.

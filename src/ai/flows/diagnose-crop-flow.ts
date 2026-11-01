@@ -9,8 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const DiagnoseCropInputSchema = z.object({
+  locale: localeField,
   photoDataUri: z
     .string()
     .describe(
@@ -41,7 +43,7 @@ const prompt = ai.definePrompt({
   name: 'diagnoseCropPrompt',
   input: {schema: DiagnoseCropInputSchema},
   output: {schema: DiagnoseCropOutputSchema},
-  prompt: `You are an expert plant pathologist and agronomist. A farmer needs your help diagnosing a problem with their crop.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert plant pathologist and agronomist. A farmer needs your help diagnosing a problem with their crop.
 
 Analyze the provided image and the farmer's description of the problem.
 

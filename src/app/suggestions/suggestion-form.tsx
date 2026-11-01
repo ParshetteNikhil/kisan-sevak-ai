@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getSuggestions } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import type { WeatherBasedSuggestionsOutput } from '@/ai/flows/weather-based-suggestions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles, BrainCircuit, Loader2, CloudSun } from 'lucide-react';
@@ -47,7 +48,7 @@ export default function SuggestionForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -102,7 +103,7 @@ export default function SuggestionForm() {
     setIsLoading(true);
     setResult(null);
     try {
-      const suggestionResult = await getSuggestions(await getIdTokenOrThrow(), values);
+      const suggestionResult = await withLocale(getSuggestions, locale)(await getIdTokenOrThrow(), values);
       setResult(suggestionResult);
     } catch (error) {
       console.error('Error getting weather suggestions:', error);

@@ -9,8 +9,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const IrrigationSuggestionInputSchema = z.object({
+  locale: localeField,
   cropType: z.string().describe('The type of crop being grown.'),
   soilType: z.enum(['Loam', 'Clay', 'Sandy', 'Silt']).describe('The type of soil in the field.'),
   weatherForecast: z
@@ -35,7 +37,7 @@ const prompt = ai.definePrompt({
   name: 'irrigationSuggestionPrompt',
   input: {schema: IrrigationSuggestionInputSchema},
   output: {schema: IrrigationSuggestionOutputSchema},
-  prompt: `You are an expert agronomist and water management specialist. Your task is to provide a precise irrigation recommendation for a farmer.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert agronomist and water management specialist. Your task is to provide a precise irrigation recommendation for a farmer.
 
 Analyze the following information:
 - Crop Type: {{{cropType}}}

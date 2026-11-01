@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, Sparkles, Loader2, Leaf, HeartPulse, ShieldCheck, Stethoscope, Microscope, TestTube2, AlertTriangle } from 'lucide-react';
 import { diagnoseCrop } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import type { DiagnoseCropOutput } from '@/ai/flows/diagnose-crop-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -23,7 +24,7 @@ export default function CropHealthClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DiagnoseCropOutput | null>(null);
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -60,7 +61,7 @@ export default function CropHealthClient() {
     setResult(null);
 
     try {
-      const diagnosisResult = await diagnoseCrop(await getIdTokenOrThrow(), {
+      const diagnosisResult = await withLocale(diagnoseCrop, locale)(await getIdTokenOrThrow(), {
         photoDataUri: imageData,
         problemDescription: description,
       });

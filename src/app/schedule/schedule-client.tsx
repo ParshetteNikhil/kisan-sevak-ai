@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { generateAISchedule } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import { PlusCircle, Tractor, Scissors, Wand2, Loader2, Bug, FlaskConical, Waves, Grab } from 'lucide-react';
 import { isToday, isTomorrow, parseISO } from 'date-fns';
 import { useTasks } from '@/context/tasks-provider';
@@ -77,7 +78,7 @@ export default function ScheduleClient() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const [notifiedTaskIds, setNotifiedTaskIds] = useState<string[]>([]);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     if (isLoading) return;
@@ -129,7 +130,7 @@ export default function ScheduleClient() {
       };
 
       try {
-        const newTasks = await generateAISchedule(await getIdTokenOrThrow(), input);
+        const newTasks = await withLocale(generateAISchedule, locale)(await getIdTokenOrThrow(), input);
         
         const mappedTasks = newTasks.map(task => ({
             ...task,

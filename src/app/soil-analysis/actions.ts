@@ -9,11 +9,12 @@ import {
 
 export async function getSoilAnalysis(
   idToken: string,
-  input: SoilAnalysisInput
+  input: SoilAnalysisInput,
+  locale?: string
 ): Promise<SoilAnalysisOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await performSoilAnalysis(input);
+    const output = await performSoilAnalysis({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

@@ -16,11 +16,12 @@ type ClientTask = {
 
 export async function generateAISchedule(
   idToken: string,
-  input: GenerateScheduleInput
+  input: GenerateScheduleInput,
+  locale?: string
 ): Promise<ClientTask[]> {
   try {
     await requireAiUser(idToken);
-    const output = await performScheduleGeneration(input);
+    const output = await performScheduleGeneration({ ...input, locale });
     // Map the AI output to the format expected by the client
     const mappedTasks = output.tasks.map(task => ({
       ...task,

@@ -8,6 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const AgriChatInputSchema = z.object({
   history: z.array(
@@ -35,7 +36,7 @@ export async function getChatResponse(history: ChatMessage[], message: string, l
 const prompt = ai.definePrompt({
   name: 'agriChatPrompt',
   input: {schema: AgriChatInputSchema},
-  prompt: `You are 'Agri-Chat', an expert agronomist and farming assistant AI. Your role is to provide helpful, accurate, and concise answers to questions related to farming. This includes topics like crop management, pest control, soil health, irrigation techniques, modern farming methods, and profitability.
+  prompt: FARMER_LANGUAGE_RULE + `You are 'Agri-Chat', an expert agronomist and farming assistant AI. Your role is to provide helpful, accurate, and concise answers to questions related to farming. This includes topics like crop management, pest control, soil health, irrigation techniques, modern farming methods, and profitability.
 
   Always be friendly and encouraging in your tone. Keep your answers clear and easy to understand for farmers who may not be familiar with technical jargon.
 

@@ -9,11 +9,12 @@ import {
 
 export async function diagnoseCrop(
   idToken: string,
-  input: DiagnoseCropInput
+  input: DiagnoseCropInput,
+  locale?: string
 ): Promise<DiagnoseCropOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await performCropDiagnosis(input);
+    const output = await performCropDiagnosis({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

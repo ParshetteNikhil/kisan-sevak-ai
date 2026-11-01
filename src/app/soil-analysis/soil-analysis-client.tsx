@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Lightbulb, Wheat, Beaker, MapPin, FlaskConical, AlertTriangle, Upload, Camera } from 'lucide-react';
 import { getSoilAnalysis } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import type { SoilAnalysisOutput } from '@/ai/flows/soil-analysis-flow';
 import { useI18n } from '@/hooks/use-i18n';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ export default function SoilAnalysisClient() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     if (isCameraActive) {
@@ -155,7 +156,7 @@ export default function SoilAnalysisClient() {
     setIsLoading(true);
     setAnalysisResult(null);
     try {
-      const result = await getSoilAnalysis(await getIdTokenOrThrow(), { soilPhotoDataUri: imageData, location: location });
+      const result = await withLocale(getSoilAnalysis, locale)(await getIdTokenOrThrow(), { soilPhotoDataUri: imageData, location: location });
       setAnalysisResult(result);
     } catch (error) {
       console.error('Soil analysis error:', error);

@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Calculator, Sprout, Loader2, BarChart3, Info } from 'lucide-react';
 import { getProfitabilityForecast } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import type { ProfitabilityForecastOutput } from '@/ai/flows/profitability-forecast-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -30,7 +31,7 @@ export default function ProfitabilityClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ProfitabilityForecastOutput | null>(null);
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,7 +48,7 @@ export default function ProfitabilityClient() {
     setResult(null);
 
     try {
-      const forecastResult = await getProfitabilityForecast(await getIdTokenOrThrow(), data);
+      const forecastResult = await withLocale(getProfitabilityForecast, locale)(await getIdTokenOrThrow(), data);
       setResult(forecastResult);
     } catch (error) {
       console.error(error);

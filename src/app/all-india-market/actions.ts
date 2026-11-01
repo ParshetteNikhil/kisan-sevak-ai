@@ -9,11 +9,12 @@ import {
 
 export async function analyzeInterStatePrice(
   idToken: string,
-  input: InterStatePriceInput
+  input: InterStatePriceInput,
+  locale?: string
 ): Promise<InterStatePriceOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await getInterStatePriceAnalysis(input);
+    const output = await getInterStatePriceAnalysis({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

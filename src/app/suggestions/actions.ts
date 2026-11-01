@@ -9,11 +9,12 @@ import {
 
 export async function getSuggestions(
   idToken: string,
-  input: WeatherBasedSuggestionsInput
+  input: WeatherBasedSuggestionsInput,
+  locale?: string
 ): Promise<WeatherBasedSuggestionsOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await getWeatherBasedSuggestions(input);
+    const output = await getWeatherBasedSuggestions({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

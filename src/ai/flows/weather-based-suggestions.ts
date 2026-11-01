@@ -10,8 +10,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 const WeatherBasedSuggestionsInputSchema = z.object({
+  locale: localeField,
   weatherForecast: z
     .string()
     .describe('The local weather forecast, including temperature, precipitation, and humidity.'),
@@ -52,7 +54,7 @@ const prompt = ai.definePrompt({
   name: 'weatherBasedSuggestionsPrompt',
   input: {schema: WeatherBasedSuggestionsInputSchema},
   output: {schema: WeatherBasedSuggestionsOutputSchema},
-  prompt: `You are an expert agronomist AI. Your task is to provide a specific suggestion and the reasoning for the best time to perform a farming activity.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert agronomist AI. Your task is to provide a specific suggestion and the reasoning for the best time to perform a farming activity.
 
 Analyze the provided weather forecast, crop type, and the intended farming activity.
 

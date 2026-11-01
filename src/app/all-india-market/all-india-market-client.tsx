@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Globe, MapPin, Search, Loader2, BarChart3, Info, IndianRupee, Truck, Milestone } from 'lucide-react';
 import { analyzeInterStatePrice } from './actions';
 import { getIdTokenOrThrow } from '@/lib/firebase';
+import { withLocale } from '@/lib/with-locale';
 import type { InterStatePriceOutput } from '@/ai/flows/inter-state-price-flow';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -32,7 +33,7 @@ export default function AllIndiaMarketClient() {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [result, setResult] = useState<InterStatePriceOutput | null>(null);
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -81,7 +82,7 @@ export default function AllIndiaMarketClient() {
     setResult(null);
 
     try {
-      const analysisResult = await analyzeInterStatePrice(await getIdTokenOrThrow(), data);
+      const analysisResult = await withLocale(analyzeInterStatePrice, locale)(await getIdTokenOrThrow(), data);
       setResult(analysisResult);
     } catch (error) {
       console.error(error);

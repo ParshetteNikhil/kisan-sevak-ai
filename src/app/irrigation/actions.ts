@@ -9,11 +9,12 @@ import {
 
 export async function getIrrigationSuggestion(
   idToken: string,
-  input: IrrigationSuggestionInput
+  input: IrrigationSuggestionInput,
+  locale?: string
 ): Promise<IrrigationSuggestionOutput> {
   try {
     await requireAiUser(idToken);
-    const output = await performIrrigationSuggestion(input);
+    const output = await performIrrigationSuggestion({ ...input, locale });
     return output;
   } catch (error) {
     if (error instanceof AuthError) throw new Error(error.message);

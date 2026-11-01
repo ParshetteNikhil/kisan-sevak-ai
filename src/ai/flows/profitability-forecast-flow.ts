@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {localeField, FARMER_LANGUAGE_RULE} from '@/ai/language';
 
 // Tool to get the current market price for a crop
 // In a real application, this would fetch from a database or a live market data API.
@@ -39,6 +40,7 @@ const getMarketPrice = ai.defineTool(
 );
 
 const ProfitabilityForecastInputSchema = z.object({
+  locale: localeField,
   cropName: z.string().describe('The name of the crop.'),
   fieldSize: z.number().describe('The size of the field.'),
   fieldUnit: z.enum(['acre', 'hectare']).describe('The unit for the field size.'),
@@ -65,7 +67,7 @@ const prompt = ai.definePrompt({
   input: {schema: ProfitabilityForecastInputSchema},
   output: {schema: ProfitabilityForecastOutputSchema},
   tools: [getMarketPrice],
-  prompt: `You are an expert agricultural financial analyst. A farmer wants a profitability forecast.
+  prompt: FARMER_LANGUAGE_RULE + `You are an expert agricultural financial analyst. A farmer wants a profitability forecast.
 
   Here is the farmer's data:
   - Crop: {{{cropName}}}
