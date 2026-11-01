@@ -19,7 +19,7 @@ import { CROPS } from '@/locales/farmer';
 import { askAI, type AskResult } from '@/lib/ask-ai';
 import { getIdTokenOrThrow } from '@/lib/firebase';
 import { track } from '@/lib/analytics';
-import { mandiPrices, type MandiResult } from '@/lib/agmarknet';
+import { mandiPrices, NEAR_KM, type MandiResult } from '@/lib/agmarknet';
 
 const rupee = (n: number) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 const median = (xs: number[]) => {
@@ -56,7 +56,7 @@ function MandiPrice() {
     setGovt(null);
     setAnswer(null);
     try {
-      const cacheKey = `mandi:${c.key}:${place.trim().toLowerCase()}:${new Date().toISOString().slice(0, 13)}`;
+      const cacheKey = `mandi2:${c.key}:${place.trim().toLowerCase()}:${new Date().toISOString().slice(0, 13)}`;
       let r: MandiResult | null = null;
       try {
         r = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
@@ -65,7 +65,7 @@ function MandiPrice() {
         const keyRes = await fetch('/api/mandi', { headers: { Authorization: `Bearer ${await getIdTokenOrThrow()}` } });
         if (!keyRes.ok) throw new Error('busy');
         const { key } = await keyRes.json();
-        r = await mandiPrices(key, c.key, place, profile?.state);
+        r = await mandiPrices(key, c.key, place, profile || undefined);
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify(r));
         } catch {}
@@ -109,11 +109,20 @@ If you cannot find a price from the last 7 days, say so clearly and give the mos
   const common = rows.length ? median(rows.map((r) => r.modal)) : 0;
   const low = rows.length ? Math.min(...rows.map((r) => r.min || r.modal)) : 0;
   const high = rows.length ? Math.max(...rows.map((r) => r.max || r.modal)) : 0;
-  const areaLabel = govt?.level === 'district' ? t('area_district') : govt?.level === 'state' ? t('area_state') : t('area_other');
+  const areaLabel =
+    govt?.level === 'near'
+      ? t('within_km', { km: NEAR_KM, place: govt.place || place })
+      : govt?.level === 'far'
+        ? t('nearest_mandis')
+        : govt?.level === 'district'
+          ? t('area_district')
+          : govt?.level === 'state'
+            ? t('area_state')
+            : t('area_other');
   const spoken = rows.length
     ? `${cropName}. ${t('price_common')}: ${Math.round(common)} ₹ ${t('per_quintal')}. ${t('price_low')} ${Math.round(low)}, ${t('price_high')} ${Math.round(high)}. ${rows
         .slice(0, 3)
-        .map((r) => `${r.market}: ${Math.round(r.modal)}`)
+        .map((r) => `${r.market}${r.km !== undefined ? ` (${r.km} km)` : ''}: ${Math.round(r.modal)}`)
         .join('. ')}`
     : '';
 
@@ -170,7 +179,8 @@ If you cannot find a price from the last 7 days, say so clearly and give the mos
                   <span className="min-w-0">
                     <span className="block font-medium">{r.market}</span>
                     <span className="block text-sm text-muted-foreground">
-                      {r.district}, {r.state} · {r.date}
+                      {r.district}, {r.state}
+                      {r.km !== undefined && ` · ~${r.km} km`} · {r.date}
                     </span>
                   </span>
                   <span className="shrink-0 font-bold tabular-nums">{rupee(r.modal)}</span>
